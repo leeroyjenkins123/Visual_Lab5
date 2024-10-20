@@ -237,3 +237,81 @@ void MainWindow::on_Replace_triggered() {
     // Показываем диалог
     replaceDialog.exec();
 }
+
+
+void MainWindow::on_Table_triggered() {
+    // Создаем диалог для выбора размера таблицы и способа вставки
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Настройки таблицы"));
+
+    // Надписи и элементы для выбора строк и столбцов
+    QLabel *rowsLabel = new QLabel(tr("Строки:"), &dialog);
+    QSpinBox *rowsSpinBox = new QSpinBox(&dialog);
+    rowsSpinBox->setRange(1, 100);
+    rowsSpinBox->setValue(3);
+
+    QLabel *columnsLabel = new QLabel(tr("Столбцы:"), &dialog);
+    QSpinBox *columnsSpinBox = new QSpinBox(&dialog);
+    columnsSpinBox->setRange(1, 100);
+    columnsSpinBox->setValue(3);
+
+    // Радио-кнопки для выбора типа вставки
+    QRadioButton *textEditorOption = new QRadioButton(tr("Вставить в текстовый редактор"), &dialog);
+    QRadioButton *widgetOption = new QRadioButton(tr("Создать таблицу как виджет"), &dialog);
+    textEditorOption->setChecked(true); // По умолчанию выбран текстовый редактор
+
+    // Кнопки OK и Отмена
+    QPushButton *okButton = new QPushButton(tr("OK"), &dialog);
+    QPushButton *cancelButton = new QPushButton(tr("Отмена"), &dialog);
+
+    // Сетка для расположения элементов диалога
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget(rowsLabel, 0, 0);
+    layout->addWidget(rowsSpinBox, 0, 1);
+    layout->addWidget(columnsLabel, 1, 0);
+    layout->addWidget(columnsSpinBox, 1, 1);
+    layout->addWidget(textEditorOption, 2, 0, 1, 2);
+    layout->addWidget(widgetOption, 3, 0, 1, 2);
+    layout->addWidget(okButton, 4, 0);
+    layout->addWidget(cancelButton, 4, 1);
+    dialog.setLayout(layout);
+
+    // Связываем кнопки с завершением диалога
+    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    // Если пользователь принял диалог
+    if (dialog.exec() == QDialog::Accepted) {
+        int rows = rowsSpinBox->value();
+        int columns = columnsSpinBox->value();
+
+        if (textEditorOption->isChecked()) {
+            // Вставляем таблицу как HTML в QTextEdit
+            editor = qobject_cast<QTextEdit*>(ui->tabWidget->currentWidget());
+            if (editor) {
+                QString htmlTable = "<table border='1' cellspacing='2' cellpadding='4'>";
+                for (int row = 0; row < rows; ++row) {
+                    htmlTable += "<tr>";
+                    for (int col = 0; col < columns; ++col) {
+                        htmlTable += "<td></td>";
+                    }
+                    htmlTable += "</tr>";
+                }
+                htmlTable += "</table>";
+
+                // Вставляем таблицу в редактор
+                editor->insertHtml(htmlTable);
+            }
+        } else if (widgetOption->isChecked()) {
+            // Создаем таблицу в виде QTableWidget
+            tableWidget = new QTableWidget(rows, columns);
+            tableWidget->setWindowTitle("Таблица");
+            tableWidget->setEditTriggers(QAbstractItemView::DoubleClicked);
+            tableModified=true;
+            // Добавляем новую вкладку с таблицей в QTabWidget
+            int index = ui->tabWidget->addTab(tableWidget, tr("Таблица %1").arg(ui->tabWidget->count() + 1));
+            ui->tabWidget->setCurrentIndex(index);
+
+        }
+    }
+}

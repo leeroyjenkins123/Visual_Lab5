@@ -367,6 +367,105 @@ void MainWindow::loadTextSettings(const QString& filePath) {
     qDebug() << "Settings loaded from: " << jsonFilePath;
 }
 
+void MainWindow::closeTab(int index)
+{
+    QWidget *widget = ui->tabWidget->widget(index);
+
+    if (widget) {
+        // Попытка преобразования в QTextEdit
+        QTextEdit* editor = qobject_cast<QTextEdit*>(widget);
+        QTableWidget* table = qobject_cast<QTableWidget*>(widget);
+        QString filePath = ui->tabWidget->tabToolTip(index);
+
+        // Проверка для QTextEdit
+        if (editor && !editor->document()->isModified()) {
+            ui->tabWidget->removeTab(index);
+            editor->deleteLater();  // Используем deleteLater() вместо delete
+        }
+        // Проверка для QTableWidget
+        else if (table && !tableModified) {
+            ui->tabWidget->removeTab(index);
+            table->deleteLater();  // Используем deleteLater() вместо delete
+        }
+        else {
+            // Диалоговое окно для подтверждения действий
+            QMessageBox::StandardButton reply;
+            reply = QMessageBox::question(this, "Закрыть вкладку",
+                    "Этот файл содержит несохранённые изменения. Сохранить перед закрытием?",
+                    QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+            if (reply == QMessageBox::Yes) {
+                // Реализуем сохранение файла перед закрытием
+                on_SaveFile_triggered();
+                ui->tabWidget->removeTab(index);
+                widget->deleteLater();  // Используем deleteLater() вместо delete
+            } else if (reply == QMessageBox::No) {
+                ui->tabWidget->removeTab(index);
+                widget->deleteLater();  // Используем deleteLater() вместо delete
+            }
+            // Если Cancel, ничего не делаем
+        }
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // Флаг, который определяет, нужно ли продолжать закрытие
+    bool shouldClose = true;
+
+    // Начнём с конца списка вкладок, чтобы корректно закрывать их без сбоя счётчика
+    for (int i = ui->tabWidget->count() - 1; i >= 0; --i) {
+        QWidget *currentWidget = ui->tabWidget->widget(i);
+        editor = qobject_cast<QTextEdit*>(currentWidget);
+
+        if (editor && editor->document()->isModified()) {
+            // Если есть несохранённые изменения
+            QString fileName = ui->tabWidget->tabToolTip(i);
+
+            // Спрашиваем пользователя
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this,
+                tr("Сохранить изменения"),
+                tr("Файл \"%1\" содержит несохранённые изменения. Сохранить?").arg(fileName.isEmpty() ? "Новый файл" : QFileInfo(fileName).fileName()),
+                QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel
+            );
+
+            if (reply == QMessageBox::Yes) {
+                // Если пользователь выбрал сохранить
+                if (fileName.isEmpty()) {
+                    on_SaveFileAs_triggered();
+                    shouldClose = true;
+
+                } else {
+                    on_SaveFile_triggered();
+                    shouldClose = true;
+                }
+
+                // Закрываем вкладку после сохранения
+                ui->tabWidget->removeTab(i);
+                delete currentWidget;
+
+            } else if (reply == QMessageBox::Cancel) {
+                // Пользователь отменил закрытие
+                shouldClose = false;
+                break;
+            } else if (reply == QMessageBox::No) {
+                // Пользователь решил не сохранять изменения
+                editor->document()->setModified(false); // Отменяем изменения
+                ui->tabWidget->removeTab(i);  // Закрываем вкладку без сохранения
+                delete currentWidget;
+            }
+        }
+    }
+
+    // Если разрешено закрытие, то вызываем стандартное закрытие
+    if (shouldClose) {
+        event->accept(); // Закрываем окно
+    } else {
+        event->ignore(); // Останавливаем закрытие
+    }
+}
+
 void MainWindow::on_Search_triggered()
 {
     // Получаем текущий виджет

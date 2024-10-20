@@ -76,6 +76,10 @@ private slots:
 
     void saveTextSettings(const QString& filePath);
 
+    void closeEvent(QCloseEvent *event);
+
+    void closeTab(int index);
+
     void onTableCellChanged(int row, int column);
 
     void on_AddRow_triggered();

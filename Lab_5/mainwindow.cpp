@@ -150,3 +150,90 @@ void MainWindow::on_Search_triggered()
     // Показываем диалог
     searchDialog.exec();
 }
+
+
+void MainWindow::on_Replace_triggered() {
+    // Получаем текущий виджет
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+    editor = qobject_cast<QTextEdit*>(currentWidget);
+
+    if (!editor) {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Текущая вкладка не поддерживает поиск"));
+        return;
+    }
+
+    // Создаем диалоговое окно
+    QDialog replaceDialog(this);
+    replaceDialog.setWindowTitle("Поиск и замена");
+
+    // Элементы интерфейса
+    QVBoxLayout *layout = new QVBoxLayout(&replaceDialog);
+
+    // Поле для текста поиска
+    QLineEdit *searchLineEdit = new QLineEdit(&replaceDialog);
+    layout->addWidget(new QLabel("Введите текст для поиска:", &replaceDialog));
+    layout->addWidget(searchLineEdit);
+
+    // Поле для текста замены
+    QLineEdit *replaceLineEdit = new QLineEdit(&replaceDialog);
+    layout->addWidget(new QLabel("Введите текст для замены:", &replaceDialog));
+    layout->addWidget(replaceLineEdit);
+
+    // Чекбоксы для учета регистра и полного слова
+    QCheckBox *caseSensitiveCheckBox = new QCheckBox("Учитывать регистр", &replaceDialog);
+    layout->addWidget(caseSensitiveCheckBox);
+
+    QCheckBox *wholeWordCheckBox = new QCheckBox("Искать только полные слова", &replaceDialog);
+    layout->addWidget(wholeWordCheckBox);
+
+    // Кнопки замены и закрытия
+    QPushButton *replaceButton = new QPushButton("Заменить все", &replaceDialog);
+    layout->addWidget(replaceButton);
+
+    QPushButton *closeButton = new QPushButton("Закрыть", &replaceDialog);
+    layout->addWidget(closeButton);
+
+    // Переменные для хранения флагов поиска
+    QTextDocument::FindFlags findFlags;
+
+    // Лямбда-функция для поиска и замены всех совпадений
+    auto replaceAll = [&]() {
+        QString searchText = searchLineEdit->text();
+        QString replaceText = replaceLineEdit->text();
+
+        if (searchText.isEmpty()) {
+            QMessageBox::information(&replaceDialog, "Поиск", "Введите текст для поиска.");
+            return;
+        }
+
+        // Настройка флагов поиска
+        findFlags = caseSensitiveCheckBox->isChecked() ? QTextDocument::FindCaseSensitively : QTextDocument::FindFlags();
+        if (wholeWordCheckBox->isChecked()) {
+            findFlags |= QTextDocument::FindWholeWords;
+        }
+
+        // Перемещаем курсор в начало документа
+        editor->moveCursor(QTextCursor::Start);
+
+        bool isReplaced = false;
+
+        // Поиск и замена всех совпадений
+        while (editor->find(searchText, findFlags)) {
+            QTextCursor cursor = editor->textCursor();
+            cursor.insertText(replaceText);  // Замена текста
+            isReplaced = true;
+        }
+
+        // Сообщение, если совпадений не найдено
+        if (!isReplaced) {
+            QMessageBox::information(&replaceDialog, "Заменить", "Текст для замены не найден.");
+        }
+    };
+
+    // Соединение кнопок с действиями
+    connect(replaceButton, &QPushButton::clicked, replaceAll);
+    connect(closeButton, &QPushButton::clicked, &replaceDialog, &QDialog::accept);
+
+    // Показываем диалог
+    replaceDialog.exec();
+}

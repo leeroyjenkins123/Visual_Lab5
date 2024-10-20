@@ -17,6 +17,7 @@ public:
 
 private slots:
     void on_Search_triggered();
+    void on_Replace_triggered();
 
 private:
     Ui::MainWindow *ui;

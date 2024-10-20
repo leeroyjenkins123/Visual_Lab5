@@ -709,3 +709,17 @@ void MainWindow::on_DeleteColumn_triggered()
             }
         }
 }
+void MainWindow::setupShortcuts(){
+    ui->CreateNewFile->setShortcut(QKeySequence::New);
+    ui->OpenFile->setShortcut(QKeySequence::Open);
+    ui->SaveFile->setShortcut(QKeySequence::Save);
+    ui->SaveFileAs->setShortcut(QKeySequence::SaveAs);
+    ui->Copy->setShortcut(QKeySequence::Copy);
+    ui->Clear->setShortcut(QKeySequence("Ctrl+Del"));
+    ui->Cut->setShortcut(QKeySequence::Cut);
+    ui->Search->setShortcut(QKeySequence::Find);
+    ui->Paste->setShortcut(QKeySequence::Paste);
+    ui->Replace->setShortcut(QKeySequence::Replace);
+    ui->Undo->setShortcut(QKeySequence::Undo);
+    ui->Redo->setShortcut(QKeySequence::Redo);
+}

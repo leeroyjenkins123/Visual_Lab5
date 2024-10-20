@@ -56,6 +56,8 @@ private slots:
 
     void on_Table_triggered();
 
+    void setupShortcuts();
+
     void onTableCellChanged(int row, int column);
 
     void on_AddRow_triggered();

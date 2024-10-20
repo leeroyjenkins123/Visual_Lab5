@@ -779,3 +779,10 @@ void MainWindow::on_Cut_triggered()
             editor->cut();
         }
 }
+
+void MainWindow::on_Redo_triggered()
+{
+    if(editor){
+        editor->document()->redo();
+    }
+}

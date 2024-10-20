@@ -60,6 +60,8 @@ private slots:
 
     void on_Cut_triggered();
 
+    void on_Redo_triggered();
+
     void on_Table_triggered();
 
     void setupShortcuts();

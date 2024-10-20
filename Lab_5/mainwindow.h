@@ -20,6 +20,16 @@ private slots:
     void on_Replace_triggered();
     void on_Table_triggered();
 
+    void onTableCellChanged(int row, int column);
+
+    void on_AddRow_triggered();
+
+    void on_AddColumn_triggered();
+
+    void on_DeleteRow_triggered();
+
+    void on_DeleteColumn_triggered();
+
 private:
     Ui::MainWindow *ui;
     int pageIndex;

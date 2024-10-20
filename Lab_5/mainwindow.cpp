@@ -315,3 +315,47 @@ void MainWindow::on_Table_triggered() {
         }
     }
 }
+
+void MainWindow::onTableCellChanged(int row, int column) {
+    Q_UNUSED(row);  // Если не используете эти параметры
+    Q_UNUSED(column);  // Если не используете эти параметры
+    tableModified = true;  // Устанавливаем флаг изменений
+}
+
+void MainWindow::on_AddRow_triggered()
+{
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+        if (QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget)) {
+            // Добавляем строку в QTableWidget
+            tableWidget->insertRow(tableWidget->rowCount());
+            tableModified=true;
+        } else if (QTextEdit *editor = qobject_cast<QTextEdit*>(currentWidget)) {
+            // Добавляем строку в таблицу в QTextEdit
+            QTextCursor cursor = editor->textCursor();
+            if (cursor.currentTable()) {
+                QTextTable *table = cursor.currentTable();
+                table->appendRows(1);
+            } else {
+                QMessageBox::warning(this, "Ошибка", "Текущая ячейка не является таблицей.");
+            }
+        }
+}
+
+void MainWindow::on_AddColumn_triggered()
+{
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+        if (QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget)) {
+            // Добавляем столбец в QTableWidget
+            tableWidget->insertColumn(tableWidget->columnCount());
+            tableModified=true;
+        } else if (QTextEdit *editor = qobject_cast<QTextEdit*>(currentWidget)) {
+            // Добавляем столбец в таблицу в QTextEdit
+            QTextCursor cursor = editor->textCursor();
+            if (cursor.currentTable()) {
+                QTextTable *table = cursor.currentTable();
+                table->appendColumns(1);
+            } else {
+                QMessageBox::warning(this, "Ошибка", "Текущая ячейка не является таблицей.");
+            }
+        }
+}

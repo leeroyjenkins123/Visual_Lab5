@@ -13,6 +13,296 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::on_CreateNewFile_triggered()
+{
+    QTextEdit *newEdit = new QTextEdit(this);
+    pageIndex = ui->tabWidget->addTab(newEdit, "Новый файл");
+    ui->tabWidget->setCurrentIndex(pageIndex);
+    QTextCharFormat format;  // Устанавливаем цвет текста
+    format.setBackground(Qt::white);
+    newEdit->setCurrentCharFormat(format);
+    newEdit->document()->setModified(false);
+}
+
+void MainWindow::on_OpenFile_triggered()
+{
+    // Открываем диалог для выбора файла
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Открыть файл"), "", tr("Text Files (*.txt);;Table Files(*.csv);;All Files (*)"));
+
+    // Проверяем, был ли выбран файл
+    if (fileName.isEmpty()) {
+        return;  // Если файл не выбран, выходим из функции
+    }
+
+    if(fileName.endsWith(".csv", Qt::CaseInsensitive)){
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Не удалось открыть CSV файл"));
+            return;
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        int rows = lines.size();
+        int columns = !lines.isEmpty() ? lines.first().split(",").size() : 0;
+
+        if (rows == 0 || columns == 0) {
+            QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Файл CSV пуст или имеет неправильный формат"));
+            return;
+        }
+
+        if (tableWidget) {
+            tableWidget->clear();  // Очистить содержимое
+            tableWidget->setRowCount(0);  // Убедиться, что таблица пуста
+            tableWidget->setColumnCount(0);
+        }
+
+        // Создаем таблицу
+        QTableWidget *newTableWidget = new QTableWidget(rows, columns);
+        newTableWidget->setWindowTitle(fileName);
+        if (!tableWidget) {
+            QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Не удалось создать таблицу"));
+            return;
+        }
+
+        // Проверяем каждую строку на количество колонок
+        for (int i = 0; i < rows; ++i) {
+            QStringList cells = lines.at(i).split(",");
+            if (cells.size() != columns) {
+                QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Некорректный CSV файл: строки содержат разное количество столбцов"));
+                delete newTableWidget; // Удаляем таблицу при ошибке, чтобы избежать утечки памяти
+                return;
+            }
+
+            for (int j = 0; j < cells.size(); ++j) {
+                newTableWidget->setItem(i, j, new QTableWidgetItem(cells.at(j)));
+            }
+        }
+        // Добавляем таблицу во вкладку
+        pageIndex = ui->tabWidget->addTab(newTableWidget, QFileInfo(fileName).fileName());
+        ui->tabWidget->setCurrentIndex(pageIndex);
+        tableWidget = qobject_cast<QTableWidget*>(ui->tabWidget->currentWidget());
+        connect(newTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
+    }
+    else{
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            // Если не удалось открыть файл, показываем сообщение об ошибке
+            QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Не удалось открыть файл"));
+            return;
+        }
+
+        // Читаем содержимое файла
+        QTextStream in(&file);
+        QString fileContent = in.readAll();
+        file.close();
+
+        // Создаем новый QTextEdit для отображения содержимого файла
+        QTextEdit *newEdit = new QTextEdit();
+        newEdit->setText(fileContent);
+
+        // Добавляем новую вкладку с именем файла
+        int pageIndex = ui->tabWidget->addTab(newEdit, QFileInfo(fileName).fileName());
+        ui->tabWidget->setCurrentIndex(pageIndex);
+        pageIndex = ui->tabWidget->currentIndex();
+
+        editor = qobject_cast<QTextEdit*>(ui->tabWidget->currentWidget());
+        loadTextSettings(fileName);
+        editor->document()->setModified(false);
+    }
+    pageIndex = ui->tabWidget->currentIndex();
+    ui->tabWidget->setTabToolTip(pageIndex, fileName);
+}
+
+void MainWindow::on_SaveFile_triggered() {
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+    if (!currentWidget) {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Нет открытой вкладки для сохранения"));
+        return;
+    }
+
+    // Определяем тип виджета
+    editor = qobject_cast<QTextEdit*>(currentWidget);
+    QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget);
+
+    QString filePath = ui->tabWidget->tabToolTip(ui->tabWidget->currentIndex()); // Получаем путь к файлу из tabToolTip
+
+    if (editor) {
+        // Обработка для текстового редактора
+        if (!filePath.isEmpty()) {
+            // Если файл существует, сохраняем изменения без диалога
+            QFile file(filePath);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QMessageBox::warning(nullptr, "Ошибка", "Не удалось сохранить текстовый файл");
+                return;
+            }
+
+            QTextStream out(&file);
+            out << editor->toPlainText();
+            file.close();
+            saveTextSettings(filePath);
+        } else {
+            // Если файл новый, вызываем диалог сохранения
+            filePath = QFileDialog::getSaveFileName(this, tr("Сохранить файл"), "", tr("Text Files (*.txt);;All Files (*)"));
+            if (filePath.isEmpty()) {
+                return;
+            }
+
+            QFile file(filePath);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QMessageBox::warning(nullptr, "Ошибка", "Не удалось сохранить текстовый файл");
+                return;
+            }
+
+            QTextStream out(&file);
+            out << editor->toPlainText();
+            file.close();
+            saveTextSettings(filePath);
+            // Устанавливаем путь в качестве подсказки на вкладке
+            ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
+            ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), QFileInfo(filePath).fileName());
+        }
+        editor->document()->setModified(false);  // Снимаем флаг изменения документа
+    }
+    else if (tableWidget && tableModified) {
+        // Обработка для таблицы
+        if (!filePath.isEmpty()) {
+            // Если файл существует, сохраняем изменения без диалога
+            QFile file(filePath);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Не удалось открыть файл для записи"));
+                return;
+            }
+
+            QTextStream out(&file);
+            int rows = tableWidget->rowCount();
+            int columns = tableWidget->columnCount();
+
+            // Записываем данные таблицы в файл
+            for (int i = 0; i < rows; ++i) {
+                QStringList rowContents;
+                for (int j = 0; j < columns; ++j) {
+                    QTableWidgetItem *item = tableWidget->item(i, j);
+                    if (item) {
+                        rowContents << item->text();
+                    } else {
+                        rowContents << ""; // Пустая ячейка
+                    }
+                }
+                out << rowContents.join(",") << "\n";
+            }
+
+            file.close();
+
+        } else {
+            // Если файл новый, вызываем диалог сохранения
+            filePath = QFileDialog::getSaveFileName(this, tr("Сохранить файл таблицы"), "", tr("CSV Files (*.csv);;All Files (*)"));
+            if (filePath.isEmpty()) {
+                return;
+            }
+
+            QFile file(filePath);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QMessageBox::warning(nullptr, QObject::tr("Ошибка"), QObject::tr("Не удалось открыть файл для записи"));
+                return;
+            }
+
+            QTextStream out(&file);
+            int rows = tableWidget->rowCount();
+            int columns = tableWidget->columnCount();
+
+            // Записываем данные таблицы в файл
+            for (int i = 0; i < rows; ++i) {
+                QStringList rowContents;
+                for (int j = 0; j < columns; ++j) {
+                    QTableWidgetItem *item = tableWidget->item(i, j);
+                    if (item) {
+                        rowContents << item->text();
+                    } else {
+                        rowContents << ""; // Пустая ячейка
+                    }
+                }
+                out << rowContents.join(",") << "\n";
+            }
+
+            file.close();
+            // Устанавливаем путь в качестве подсказки на вкладке
+            ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
+            ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), QFileInfo(filePath).fileName());
+            tableModified=false;
+        }
+    }
+    else {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Текущая вкладка не поддерживает сохранение"));
+    }
+    tableModified=false;
+}
+
+void MainWindow::on_SaveFileAs_triggered()
+{
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+    if (!currentWidget) {
+        QMessageBox::warning(this, tr("Ошибка"), tr("Нет открытой вкладки для сохранения"));
+        return;
+    }
+
+    editor = qobject_cast<QTextEdit*>(currentWidget);
+    QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget);
+
+    QString filePath;
+    if (tableWidget) {
+        // Если активна таблица
+        filePath = QFileDialog::getSaveFileName(this, tr("Сохранить файл таблицы как"), "", tr("CSV Files (*.csv);;All Files (*)"));
+        if (filePath.isEmpty()) return;
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, tr("Ошибка"), tr("Не удалось открыть файл для записи"));
+            return;
+        }
+
+        QTextStream out(&file);
+        int rows = tableWidget->rowCount();
+        int columns = tableWidget->columnCount();
+
+        for (int i = 0; i < rows; ++i) {
+            QStringList rowContents;
+            for (int j = 0; j < columns; ++j) {
+                QTableWidgetItem *item = tableWidget->item(i, j);
+                rowContents << (item ? item->text() : "");
+            }
+            out << rowContents.join(",") << "\n";
+        }
+
+        file.close();
+        ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
+        ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), QFileInfo(filePath).fileName());
+    }
+    else if (editor) {
+        // Если активен текстовый редактор
+        filePath = QFileDialog::getSaveFileName(this, tr("Сохранить файл как"), "", tr("Text Files (*.txt);;All Files (*)"));
+        if (filePath.isEmpty()) return;
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, tr("Ошибка"), tr("Не удалось сохранить файл"));
+            return;
+        }
+
+        QTextStream out(&file);
+        out << editor->toPlainText();
+        file.close();
+
+        ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
+        ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), QFileInfo(filePath).fileName());
+    }
+}
+
 void MainWindow::on_Search_triggered()
 {
     // Получаем текущий виджет
@@ -237,7 +527,6 @@ void MainWindow::on_Replace_triggered() {
     // Показываем диалог
     replaceDialog.exec();
 }
-
 
 void MainWindow::on_Table_triggered() {
     // Создаем диалог для выбора размера таблицы и способа вставки

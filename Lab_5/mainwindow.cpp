@@ -841,3 +841,39 @@ void MainWindow::on_Palette_triggered()
         qDebug()<<"editor->backgroundRole() "<<editor->backgroundRole();
     }
 }
+
+void MainWindow::on_FontAndSize_triggered() {
+    // Проверяем текущий редактор
+    editor = qobject_cast<QTextEdit*>(ui->tabWidget->currentWidget());
+    if (!editor) return;  // Если нет активного редактора, прерываем выполнение
+
+    bool ok;
+    // Открываем диалог выбора шрифта
+    QFont font = QFontDialog::getFont(&ok, editor->currentFont(), this, tr("Выберите шрифт"));
+    qDebug() << "Selected Font: " << font;
+
+    if (ok) {
+        // Сохраняем выбранный шрифт в переменной класса для дальнейшего использования
+        currentFont = font;
+
+        // Получаем текстовый курсор
+        QTextCursor cursor = editor->textCursor();
+
+        // Создаем формат для шрифта
+        QTextCharFormat format;
+        format.setFont(font);
+
+        if (cursor.hasSelection()) {
+            // Если текст выделен, применяем шрифт к выделенному тексту
+            qDebug() << "Applying Font to Selected Text: " << format.font();
+            cursor.mergeCharFormat(format);
+        } else {
+            // Если текст не выделен, применяем шрифт для текущей строки
+            qDebug() << "Applying Font to Future Text: " << format.font();
+            editor->setCurrentCharFormat(format);
+        }
+
+        // Сохраняем изменения в документе редактора
+        editor->document()->setModified(true);
+    }
+}

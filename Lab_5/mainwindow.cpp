@@ -765,3 +765,10 @@ void MainWindow::on_Copy_triggered()
         editor->copy();
     }
 }
+
+void MainWindow::on_Paste_triggered()
+{
+    if(editor){
+        editor->paste();
+    }
+}

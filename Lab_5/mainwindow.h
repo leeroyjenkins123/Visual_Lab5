@@ -56,6 +56,8 @@ private slots:
 
     void on_Copy_triggered();
 
+    void on_Paste_triggered();
+
     void on_Table_triggered();
 
     void setupShortcuts();

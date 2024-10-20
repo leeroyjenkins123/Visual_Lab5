@@ -62,6 +62,8 @@ private slots:
 
     void on_Redo_triggered();
 
+    void on_Palette_triggered();
+
     void on_Table_triggered();
 
     void setupShortcuts();

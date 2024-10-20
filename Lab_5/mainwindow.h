@@ -64,6 +64,8 @@ private slots:
 
     void on_AddRow_triggered();
 
+    void on_Undo_triggered();
+
     void on_AddColumn_triggered();
 
     void on_DeleteRow_triggered();

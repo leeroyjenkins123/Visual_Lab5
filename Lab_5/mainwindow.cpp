@@ -741,3 +741,20 @@ void MainWindow::on_Clear_triggered()
     }
     editor->document()->setModified(true);
 }
+
+void MainWindow::on_Undo_triggered()
+{
+    if(editor){
+        if (this->tempFile.exists()) {
+            if(this->tempFile.open()){
+            editor->undo();
+            QString saved = QString::fromUtf8(this->tempFile.readAll());
+            editor->document()->setPlainText(saved);
+            this->tempFile.close();
+            }
+        }
+        else{
+            editor->document()->undo();
+        }
+    }
+}

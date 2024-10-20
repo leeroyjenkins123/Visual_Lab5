@@ -72,6 +72,7 @@
     <addaction name="AddColumn"/>
     <addaction name="DeleteRow"/>
     <addaction name="DeleteColumn"/>
+    <addaction name="Paddins"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -126,6 +127,7 @@
    <addaction name="DeleteRow"/>
    <addaction name="AddColumn"/>
    <addaction name="DeleteColumn"/>
+   <addaction name="Paddins"/>
   </widget>
   <action name="CreateNewFile">
    <property name="icon">
@@ -296,6 +298,15 @@
    </property>
    <property name="text">
     <string>Убрать столбец</string>
+   </property>
+  </action>
+  <action name="Paddins">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/res/images/icons/indent.png</normaloff>:/res/images/icons/indent.png</iconset>
+   </property>
+   <property name="text">
+    <string>Отступы</string>
    </property>
   </action>
  </widget>

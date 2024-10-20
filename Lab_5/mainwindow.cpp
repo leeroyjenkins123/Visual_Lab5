@@ -59,6 +59,24 @@ void MainWindow::on_OpenFile_triggered()
         return;
     }
 
+    int existingIndex = -1;
+       for (int i = 0; i < ui->tabWidget->count(); ++i)
+       {
+           if (ui->tabWidget->tabToolTip(i) == fileName) // Сравниваем с путем к файлу
+           {
+               existingIndex = i;
+               break;
+           }
+       }
+
+       if (existingIndex != -1)
+       {
+           // Если файл уже открыт, удаляем старую вкладку
+           QWidget *oldWidget = ui->tabWidget->widget(existingIndex);
+           ui->tabWidget->removeTab(existingIndex);
+           delete oldWidget;
+       }
+
     if (fileName.endsWith(".csv", Qt::CaseInsensitive))
     {
         QFile file(fileName);
@@ -118,8 +136,9 @@ void MainWindow::on_OpenFile_triggered()
 
         pageIndex = ui->tabWidget->addTab(newTableWidget, QFileInfo(fileName).fileName());
         ui->tabWidget->setCurrentIndex(pageIndex);
-        tableWidget = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
         connect(newTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
+        newTableWidget->setProperty("modified", false);
+
     }
     else
     {
@@ -209,7 +228,7 @@ void MainWindow::on_SaveFile_triggered()
         }
         editor->document()->setModified(false); // Снимаем флаг изменения документа
     }
-    else if (tableWidget && tableModified)
+    else if (tableWidget && tableWidget->property("modified").toBool())
     {
         // Обработка для таблицы
         if (!filePath.isEmpty())
@@ -244,7 +263,7 @@ void MainWindow::on_SaveFile_triggered()
                 }
                 out << rowContents.join(",") << "\n";
             }
-
+            tableWidget->setProperty("modified", false);
             file.close();
         }
         else
@@ -290,14 +309,13 @@ void MainWindow::on_SaveFile_triggered()
             // Устанавливаем путь в качестве подсказки на вкладке
             ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
             ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), QFileInfo(filePath).fileName());
-            tableModified = false;
+            tableWidget->setProperty("modified", false);
         }
     }
     else
     {
         QMessageBox::warning(this, tr("Ошибка"), tr("Текущая вкладка не поддерживает сохранение"));
     }
-    tableModified = false;
 }
 
 void MainWindow::on_SaveFileAs_triggered()
@@ -387,7 +405,7 @@ void MainWindow::closeTab(int index)
             editor->deleteLater(); // Используем deleteLater() вместо delete
         }
         // Проверка для QTableWidget
-        else if (table && !tableModified)
+        else if (table && !tableWidget->property("modified").toBool())
         {
             ui->tabWidget->removeTab(index);
             table->deleteLater(); // Используем deleteLater() вместо delete
@@ -419,18 +437,18 @@ void MainWindow::closeTab(int index)
 
 void MainWindow::setupShortcuts()
 {
-    ui->actionCreateNewFile->setShortcut(QKeySequence::New);
-    ui->actionOpenFile->setShortcut(QKeySequence::Open);
-    ui->actionSaveFile->setShortcut(QKeySequence::Save);
-    ui->actionSaveFileAs->setShortcut(QKeySequence::SaveAs);
-    ui->actionCopy->setShortcut(QKeySequence::Copy);
-    ui->actionClear->setShortcut(QKeySequence("Ctrl+Del"));
-    ui->actionCut->setShortcut(QKeySequence::Cut);
-    ui->actionSearch->setShortcut(QKeySequence::Find);
-    ui->actionPaste->setShortcut(QKeySequence::Paste);
-    ui->actionReplace->setShortcut(QKeySequence::Replace);
-    ui->actionUndo->setShortcut(QKeySequence::Undo);
-    ui->actionRedo->setShortcut(QKeySequence::Redo);
+    ui->CreateNewFile->setShortcut(QKeySequence::New);
+    ui->OpenFile->setShortcut(QKeySequence::Open);
+    ui->SaveFile->setShortcut(QKeySequence::Save);
+    ui->SaveFileAs->setShortcut(QKeySequence::SaveAs);
+    ui->Copy->setShortcut(QKeySequence::Copy);
+    ui->Clear->setShortcut(QKeySequence("Ctrl+Del"));
+    ui->Cut->setShortcut(QKeySequence::Cut);
+    ui->Search->setShortcut(QKeySequence::Find);
+    ui->Paste->setShortcut(QKeySequence::Paste);
+    ui->Replace->setShortcut(QKeySequence::Replace);
+    ui->Undo->setShortcut(QKeySequence::Undo);
+    ui->Redo->setShortcut(QKeySequence::Redo);
 }
 
 void MainWindow::on_Search_triggered()
@@ -680,39 +698,35 @@ void MainWindow::on_Replace_triggered()
 
 void MainWindow::on_Clear_triggered()
 {
-    int pageIndex = ui->tabWidget->currentIndex();
-    QWidget *currentWidget = ui->tabWidget->widget(pageIndex);
-    QTextEdit *editor = qobject_cast<QTextEdit *>(currentWidget);
-
-    if (!editor)
-    {
-        return;
+    pageIndex = ui->tabWidget->currentIndex();
+    QWidget *widget = ui->tabWidget->widget(pageIndex);
+    editor = qobject_cast<QTextEdit*>(widget);
+    if (!this->tempFile.isOpen() && !this->tempFile.open()) {
+               return; // Открываем временный файл
+       }
+    if(editor){
+        this->tempFile.write(editor->document()->toPlainText().toUtf8());
+        this->tempFile.flush();
+        this->tempFile.close();
+        editor->document()->clear();
     }
-
-    if (!tempFile.isOpen() && !tempFile.open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        return; // Cannot open temporary file
-    }
-
-    tempFile.write(editor->document()->toPlainText().toUtf8());
-    tempFile.flush();
-    tempFile.close();
-
-    editor->document()->clear();
     editor->document()->setModified(true);
 }
 
 void MainWindow::on_Undo_triggered()
 {
+    QWidget *widget = ui->tabWidget->widget(pageIndex);
+    editor = qobject_cast<QTextEdit*>(widget);
     if (editor)
     {
         if (this->tempFile.exists())
         {
             if (this->tempFile.open())
             {
-                editor->undo();
+                editor->document()->undo();
                 QString saved = QString::fromUtf8(this->tempFile.readAll());
                 editor->document()->setPlainText(saved);
+                this->tempFile.reset();
                 this->tempFile.close();
             }
         }
@@ -723,7 +737,7 @@ void MainWindow::on_Undo_triggered()
     }
 }
 
-void MainWindow::onCopyTriggered()
+void MainWindow::on_Copy_triggered()
 {
     if (auto currentWidget = ui->tabWidget->currentWidget()) {
         if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
@@ -734,7 +748,7 @@ void MainWindow::onCopyTriggered()
     }
 }
 
-void MainWindow::onPasteTriggered()
+void MainWindow::on_Paste_triggered()
 {
     if (auto currentWidget = ui->tabWidget->currentWidget()) {
         if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
@@ -773,6 +787,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     {
         QWidget *currentWidget = ui->tabWidget->widget(i);
         editor = qobject_cast<QTextEdit *>(currentWidget);
+        tableWidget = qobject_cast<QTableWidget *>(currentWidget);
 
         if (editor && editor->document()->isModified())
         {
@@ -815,6 +830,48 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 // Пользователь решил не сохранять изменения
                 editor->document()->setModified(false); // Отменяем изменения
                 ui->tabWidget->removeTab(i);            // Закрываем вкладку без сохранения
+                delete currentWidget;
+            }
+        }
+        else if(tableWidget && tableWidget->property("modified").toBool()){
+            QString fileName = ui->tabWidget->tabToolTip(i);
+
+            // Спрашиваем пользователя
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this,
+                tr("Сохранить изменения"),
+                tr("Файл \"%1\" содержит несохранённые изменения. Сохранить?").arg(fileName.isEmpty() ? "Новый файл" : QFileInfo(fileName).fileName()),
+                QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+            if (reply == QMessageBox::Yes)
+            {
+                // Если пользователь выбрал сохранить
+                if (fileName.isEmpty())
+                {
+                    on_SaveFileAs_triggered();
+                    shouldClose = true;
+                }
+                else
+                {
+                    on_SaveFile_triggered();
+                    shouldClose = true;
+                }
+
+                // Закрываем вкладку после сохранения
+                ui->tabWidget->removeTab(i);
+                delete currentWidget;
+            }
+            else if (reply == QMessageBox::Cancel)
+            {
+                // Пользователь отменил закрытие
+                shouldClose = false;
+                break;
+            }
+            else if (reply == QMessageBox::No)
+            {
+                // Пользователь решил не сохранять изменения // Отменяем изменения
+                ui->tabWidget->removeTab(i);
+                tableWidget->deleteLater();// Закрываем вкладку без сохранения
                 delete currentWidget;
             }
         }
@@ -1084,7 +1141,7 @@ void MainWindow::on_Table_triggered()
             tableWidget = new QTableWidget(rows, columns);
             tableWidget->setWindowTitle("Таблица");
             tableWidget->setEditTriggers(QAbstractItemView::DoubleClicked);
-            tableModified = true;
+            tableWidget->setProperty("modified", true);
             // Добавляем новую вкладку с таблицей в QTabWidget
             int index = ui->tabWidget->addTab(tableWidget, tr("Таблица %1").arg(ui->tabWidget->count() + 1));
             ui->tabWidget->setCurrentIndex(index);
@@ -1096,7 +1153,12 @@ void MainWindow::onTableCellChanged(int row, int column)
 {
     Q_UNUSED(row);        // Если не используете эти параметры
     Q_UNUSED(column);     // Если не используете эти параметры
-    tableModified = true; // Устанавливаем флаг изменений
+
+    QTableWidget *currentTable = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
+        if (currentTable)
+        {
+            currentTable->setProperty("modified", true); // Устанавливаем свойство modified в true
+        }
 }
 
 void MainWindow::on_AddRow_triggered()
@@ -1106,7 +1168,7 @@ void MainWindow::on_AddRow_triggered()
     {
         // Добавляем строку в QTableWidget
         tableWidget->insertRow(tableWidget->rowCount());
-        tableModified = true;
+        tableWidget->setProperty("modified", true);
     }
     else if (QTextEdit *editor = qobject_cast<QTextEdit *>(currentWidget))
     {
@@ -1131,7 +1193,7 @@ void MainWindow::on_AddColumn_triggered()
     {
         // Добавляем столбец в QTableWidget
         tableWidget->insertColumn(tableWidget->columnCount());
-        tableModified = true;
+        tableWidget->setProperty("modified", true);
     }
     else if (QTextEdit *editor = qobject_cast<QTextEdit *>(currentWidget))
     {
@@ -1167,7 +1229,7 @@ void MainWindow::on_DeleteRow_triggered()
                 QMessageBox::warning(this, "Ошибка", "Выберите строку для удаления.");
             }
         }
-        tableModified = true;
+        tableWidget->setProperty("modified", true);
     }
     else if (QTextEdit *editor = qobject_cast<QTextEdit *>(currentWidget))
     {
@@ -1206,7 +1268,7 @@ void MainWindow::on_DeleteColumn_triggered()
                 QMessageBox::warning(this, "Ошибка", "Выберите столбец для удаления.");
             }
         }
-        tableModified = true;
+        tableWidget->setProperty("modified", true);
     }
     else if (QTextEdit *editor = qobject_cast<QTextEdit *>(currentWidget))
     {
@@ -1223,6 +1285,85 @@ void MainWindow::on_DeleteColumn_triggered()
         else
         {
             QMessageBox::warning(this, "Ошибка", "Текущая ячейка не является частью таблицы.");
+        }
+    }
+}
+
+
+void MainWindow::on_Paddins_triggered()
+{
+    QTableWidget *tableWidget = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
+    if (!tableWidget)
+    {
+        QMessageBox::warning(this, "Ошибка", "Текущая вкладка не является таблицей.");
+        return;
+    }
+
+    int currentRow = tableWidget->currentRow();
+    int currentColumn = tableWidget->currentColumn();
+    if (currentRow == -1 || currentColumn == -1)
+    {
+        QMessageBox::warning(this, "Ошибка", "Выберите ячейку для изменения выравнивания.");
+        return;
+    }
+
+    // Создаем диалог для выбора выравнивания
+    QDialog dialog(this);
+    dialog.setWindowTitle("Выбор выравнивания");
+
+    // Кнопки для выбора выравнивания
+    QRadioButton *leftButton = new QRadioButton("Слева", &dialog);
+    QRadioButton *centerButton = new QRadioButton("По центру", &dialog);
+    QRadioButton *rightButton = new QRadioButton("Справа", &dialog);
+    leftButton->setChecked(true); // По умолчанию
+
+    QPushButton *okButton = new QPushButton("OK", &dialog);
+    QPushButton *cancelButton = new QPushButton("Отмена", &dialog);
+
+    // Расположение элементов в сетке
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(leftButton);
+    layout->addWidget(centerButton);
+    layout->addWidget(rightButton);
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    buttonLayout->addWidget(okButton);
+    buttonLayout->addWidget(cancelButton);
+    layout->addLayout(buttonLayout);
+    dialog.setLayout(layout);
+
+    // Связываем кнопки с диалогом
+    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    // Если пользователь нажал OK
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        // Устанавливаем выравнивание в зависимости от выбора
+        Qt::Alignment alignment;
+        if (leftButton->isChecked())
+        {
+            alignment = Qt::AlignLeft | Qt::AlignVCenter;
+        }
+        else if (centerButton->isChecked())
+        {
+            alignment = Qt::AlignHCenter | Qt::AlignVCenter;
+        }
+        else if (rightButton->isChecked())
+        {
+            alignment = Qt::AlignRight | Qt::AlignVCenter;
+        }
+
+        // Устанавливаем выравнивание для выбранной ячейки
+        QTableWidgetItem *item = tableWidget->item(currentRow, currentColumn);
+        if (item)
+        {
+            item->setTextAlignment(alignment);
+        }
+        else
+        {
+            item = new QTableWidgetItem();
+            item->setTextAlignment(alignment);
+            tableWidget->setItem(currentRow, currentColumn, item);
         }
     }
 }

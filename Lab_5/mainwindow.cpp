@@ -772,3 +772,10 @@ void MainWindow::on_Paste_triggered()
         editor->paste();
     }
 }
+
+void MainWindow::on_Cut_triggered()
+{
+    if(editor && editor->textCursor().hasSelection()) {
+            editor->cut();
+        }
+}

@@ -359,3 +359,64 @@ void MainWindow::on_AddColumn_triggered()
             }
         }
 }
+
+
+void MainWindow::on_DeleteRow_triggered()
+{
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+        if (QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget)) {
+            // Удаляем текущую строку в QTableWidget
+            if(tableWidget->rowCount()>1)
+            {
+                int currentRow = tableWidget->currentRow();
+                if (currentRow != -1) {
+                    tableWidget->removeRow(currentRow);
+                } else {
+                    QMessageBox::warning(this, "Ошибка", "Выберите строку для удаления.");
+                }
+            }
+            tableModified=true;
+        } else if (QTextEdit *editor = qobject_cast<QTextEdit*>(currentWidget)) {
+            // Удаляем строку в таблице в QTextEdit
+            QTextCursor cursor = editor->textCursor();
+            if (QTextTable *table = cursor.currentTable()) {
+                if(table->rows()>1)
+                {
+                    int currentRow = cursor.currentTable()->cellAt(cursor).row();
+                    table->removeRows(currentRow, 1);
+                }
+            } else {
+                QMessageBox::warning(this, "Ошибка", "Текущая ячейка не является частью таблицы.");
+            }
+        }
+}
+
+void MainWindow::on_DeleteColumn_triggered()
+{
+    QWidget *currentWidget = ui->tabWidget->currentWidget();
+        if (QTableWidget *tableWidget = qobject_cast<QTableWidget*>(currentWidget)) {
+            // Удаляем текущий столбец в QTableWidget
+            if(tableWidget->columnCount()>1)
+            {
+                int currentColumn = tableWidget->currentColumn();
+                if (currentColumn != -1) {
+                    tableWidget->removeColumn(currentColumn);
+                } else {
+                    QMessageBox::warning(this, "Ошибка", "Выберите столбец для удаления.");
+                }
+            }
+            tableModified=true;
+        } else if (QTextEdit *editor = qobject_cast<QTextEdit*>(currentWidget)) {
+            // Удаляем столбец в таблице в QTextEdit
+            QTextCursor cursor = editor->textCursor();
+            if (QTextTable *table = cursor.currentTable()) {
+                if(table->columns()>1)
+                {
+                    int currentColumn = cursor.currentTable()->cellAt(cursor).column();
+                    table->removeColumns(currentColumn, 1);
+                }
+            } else {
+                QMessageBox::warning(this, "Ошибка", "Текущая ячейка не является частью таблицы.");
+            }
+        }
+}

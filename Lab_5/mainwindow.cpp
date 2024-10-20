@@ -758,3 +758,10 @@ void MainWindow::on_Undo_triggered()
         }
     }
 }
+
+void MainWindow::on_Copy_triggered()
+{
+    if (editor && editor->textCursor().hasSelection()) {
+        editor->copy();
+    }
+}

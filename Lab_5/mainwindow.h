@@ -72,6 +72,10 @@ private slots:
 
     void on_Clear_triggered();
 
+    void loadTextSettings(const QString& filePath);
+
+    void saveTextSettings(const QString& filePath);
+
     void onTableCellChanged(int row, int column);
 
     void on_AddRow_triggered();

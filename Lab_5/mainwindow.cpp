@@ -303,6 +303,70 @@ void MainWindow::on_SaveFileAs_triggered()
     }
 }
 
+void MainWindow::saveTextSettings(const QString& filePath) {
+    editor = qobject_cast<QTextEdit*>(ui->tabWidget->currentWidget());
+    if (!editor) return;
+
+    QFileInfo fileInfo(filePath);
+    QString relativePath = "../Laboratory_5/settings";
+
+    QDir settingsDir(relativePath);
+    if (!settingsDir.exists() && !settingsDir.mkpath(".")) {
+        qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
+        return;
+    }
+
+    QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".html");
+
+    // Извлекаем HTML код документа
+    QString documentHtml = editor->toHtml();
+
+    // Сохраняем HTML код в JSON объект
+    QJsonObject settingsObject;
+    settingsObject["html"] = documentHtml;
+
+    QJsonDocument settingsDoc(settingsObject);
+    QFile jsonFile(jsonFilePath);
+    if (jsonFile.open(QIODevice::WriteOnly)) {
+        jsonFile.write(settingsDoc.toJson());
+        jsonFile.close();
+        qDebug() << "Settings saved to: " << jsonFilePath;
+    } else {
+        qDebug() << "Unable to open file for writing: " << jsonFilePath;
+    }
+}
+
+void MainWindow::loadTextSettings(const QString& filePath) {
+    QTextEdit* editor = qobject_cast<QTextEdit*>(ui->tabWidget->currentWidget());
+    if (!editor) return;
+
+    QFileInfo fileInfo(filePath);
+    QString relativePath = "../Laboratory_5/settings";
+    QDir settingsDir(relativePath);
+    QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".html");
+
+    QFile jsonFile(jsonFilePath);
+    if (!jsonFile.open(QIODevice::ReadOnly)) {
+        qDebug() << "Unable to open file for reading: " << jsonFilePath;
+        return;
+    }
+
+    QByteArray saveData = jsonFile.readAll();
+    jsonFile.close();
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(saveData));
+    QJsonObject settingsObject = loadDoc.object();
+
+    // Извлекаем HTML из JSON объекта
+    QString documentHtml = settingsObject["html"].toString();
+
+    // Очищаем текстовый редактор и вставляем HTML
+    editor->clear();
+    editor->setHtml(documentHtml);
+
+    qDebug() << "Settings loaded from: " << jsonFilePath;
+}
+
 void MainWindow::on_Search_triggered()
 {
     // Получаем текущий виджет

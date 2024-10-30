@@ -41,6 +41,8 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void createImage();
+
 private slots:
     void on_CreateNewFile_triggered();
 

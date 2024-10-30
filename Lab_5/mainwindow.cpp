@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "graphiceditorwindow.h"
 
 QTemporaryFile MainWindow::tempFile;
 
@@ -32,11 +33,42 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
         format.setBackground(Qt::white);
         editor->setCurrentCharFormat(format);
     }
+
+    QPushButton *createImageButton = new QPushButton("Создать картинку", this);
+    connect(createImageButton, &QPushButton::clicked, this, &MainWindow::createImage);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+
+void MainWindow::createImage()
+{
+    // Создайте новую вкладку
+    QWidget *tab = new QWidget();
+    ui->tabWidget->addTab(tab, "Картинка");
+
+    // Создайте редактор
+    GraphicEditorWindow *editor = new GraphicEditorWindow();
+    editor->show();
+
+    // Смените toolbar на toolbar для paint
+    QToolBar *paintToolBar = new QToolBar(this);
+    paintToolBar->addAction("Кисть");
+    paintToolBar->addAction("Ластик");
+    paintToolBar->addAction("Изменить фон");
+    paintToolBar->addAction("Добавить фигуру");
+    paintToolBar->addAction("Удалить фигуру");
+    addToolBar(paintToolBar);
+
+    // Установите соединения для кнопок toolbar
+    //connect(paintToolBar->actions()[0], &QAction::triggered, editor, &GraphicEditorWindow::on_brushSizeChanged);
+    connect(paintToolBar->actions()[1], &QAction::triggered, editor, &GraphicEditorWindow::on_eraserSizeChanged);
+    connect(paintToolBar->actions()[2], &QAction::triggered, editor, &GraphicEditorWindow::on_backgroundColorChanged);
+    connect(paintToolBar->actions()[3], &QAction::triggered, editor, &GraphicEditorWindow::on_addFigure);
+    connect(paintToolBar->actions()[4], &QAction::triggered, editor, &GraphicEditorWindow::on_deleteFigure);
 }
 
 void MainWindow::on_CreateNewFile_triggered()
@@ -60,24 +92,24 @@ void MainWindow::on_OpenFile_triggered()
     }
 
     int existingIndex = -1;
-       for (int i = 0; i < ui->tabWidget->count(); ++i)
-       {
-           if (ui->tabWidget->tabToolTip(i) == fileName) // Сравниваем с путем к файлу
-           {
-               existingIndex = i;
-               break;
-           }
-       }
+    for (int i = 0; i < ui->tabWidget->count(); ++i)
+    {
+        if (ui->tabWidget->tabToolTip(i) == fileName) // Сравниваем с путем к файлу
+        {
+            existingIndex = i;
+            break;
+        }
+    }
 
-       if (existingIndex != -1)
-       {
-           // Если файл уже открыт, удаляем старую вкладку
-//           QWidget *oldWidget = ui->tabWidget->widget(existingIndex);
-//           ui->tabWidget->removeTab(existingIndex);
-//           delete oldWidget;
-           ui->tabWidget->setCurrentIndex(existingIndex);
-            return;
-       }
+    if (existingIndex != -1)
+    {
+        // Если файл уже открыт, удаляем старую вкладку
+        //           QWidget *oldWidget = ui->tabWidget->widget(existingIndex);
+        //           ui->tabWidget->removeTab(existingIndex);
+        //           delete oldWidget;
+        ui->tabWidget->setCurrentIndex(existingIndex);
+        return;
+    }
 
     if (fileName.endsWith(".csv", Qt::CaseInsensitive))
     {
@@ -140,40 +172,39 @@ void MainWindow::on_OpenFile_triggered()
         QDir settingsDir(relativePath);
         QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
         QFile settingsFile(jsonFilePath);
-                if (settingsFile.exists() && settingsFile.open(QIODevice::ReadOnly))
+        if (settingsFile.exists() && settingsFile.open(QIODevice::ReadOnly))
+        {
+            QByteArray settingsData = settingsFile.readAll();
+            settingsFile.close();
+
+            QJsonDocument settingsDoc = QJsonDocument::fromJson(settingsData);
+            QJsonArray cellSettingsArray = settingsDoc.array();
+
+            for (int i = 0; i < cellSettingsArray.size(); ++i)
+            {
+                QJsonArray rowSettings = cellSettingsArray[i].toArray();
+                for (int j = 0; j < rowSettings.size(); ++j)
                 {
-                    QByteArray settingsData = settingsFile.readAll();
-                    settingsFile.close();
-
-                    QJsonDocument settingsDoc = QJsonDocument::fromJson(settingsData);
-                    QJsonArray cellSettingsArray = settingsDoc.array();
-
-                    for (int i = 0; i < cellSettingsArray.size(); ++i)
+                    QTableWidgetItem *item = newTableWidget->item(i, j);
+                    if (item)
                     {
-                        QJsonArray rowSettings = cellSettingsArray[i].toArray();
-                        for (int j = 0; j < rowSettings.size(); ++j)
-                        {
-                            QTableWidgetItem *item = newTableWidget->item(i, j);
-                            if (item)
-                            {
-                                QJsonObject cellSettings = rowSettings[j].toObject();
-                                item->setForeground(QColor(cellSettings["textColor"].toString()));
-                                item->setBackground(QColor(cellSettings["backgroundColor"].toString()));
-                                QFont font;
-                                font.fromString(cellSettings["font"].toString());
-                                item->setFont(font);
-                                qDebug() << "Restoring font: " << cellSettings["font"].toString();
-                                item->setTextAlignment(cellSettings["alignment"].toInt());
-                            }
-                        }
+                        QJsonObject cellSettings = rowSettings[j].toObject();
+                        item->setForeground(QColor(cellSettings["textColor"].toString()));
+                        item->setBackground(QColor(cellSettings["backgroundColor"].toString()));
+                        QFont font;
+                        font.fromString(cellSettings["font"].toString());
+                        item->setFont(font);
+                        qDebug() << "Restoring font: " << cellSettings["font"].toString();
+                        item->setTextAlignment(cellSettings["alignment"].toInt());
                     }
                 }
+            }
+        }
 
         pageIndex = ui->tabWidget->addTab(newTableWidget, QFileInfo(fileName).fileName());
         ui->tabWidget->setCurrentIndex(pageIndex);
         connect(newTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
         newTableWidget->setProperty("modified", false);
-
     }
     else
     {
@@ -282,53 +313,57 @@ void MainWindow::on_SaveFile_triggered()
 
             // Записываем данные таблицы в файл
             QJsonArray cellSettingsArray;
-                    for (int i = 0; i < rows; ++i) {
-                        QStringList rowContents;
-                        QJsonArray rowCellSettings;
+            for (int i = 0; i < rows; ++i)
+            {
+                QStringList rowContents;
+                QJsonArray rowCellSettings;
 
-                        for (int j = 0; j < columns; ++j) {
-                            QTableWidgetItem *item = tableWidget->item(i, j);
+                for (int j = 0; j < columns; ++j)
+                {
+                    QTableWidgetItem *item = tableWidget->item(i, j);
 
-                            // Проверка на nullptr
-                            if (!item) {
-                                item = new QTableWidgetItem("");  // Создаем пустую ячейку, если она не существует
-                                tableWidget->setItem(i, j, item);
-                            }
-
-                            QString cellText = item->text();
-                            rowContents << cellText;
-
-                            // Сохраняем настройки ячейки
-                            QJsonObject cellSettings;
-                            cellSettings["textColor"] = item->foreground().color().name();
-                            cellSettings["backgroundColor"] = item->background().color().name();
-                            cellSettings["font"] = item->font().toString();
-                            qDebug()<<item->font().toString();
-                            cellSettings["alignment"] = item->textAlignment();
-                            rowCellSettings.append(cellSettings);
-                        }
-
-                        out << rowContents.join(",") << "\n";
-                        cellSettingsArray.append(rowCellSettings);
-                    }
-
-                    // Сохраняем настройки в JSON файл
-                    QFileInfo fileInfo(filePath);
-                    QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
-
-                    QDir settingsDir(relativePath);
-                    if (!settingsDir.exists() && !settingsDir.mkpath("."))
+                    // Проверка на nullptr
+                    if (!item)
                     {
-                        qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
-                        return;
+                        item = new QTableWidgetItem(""); // Создаем пустую ячейку, если она не существует
+                        tableWidget->setItem(i, j, item);
                     }
-                    QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
-                    QFile settingsFile(jsonFilePath);
-                    if (settingsFile.open(QIODevice::WriteOnly)) {
-                        QJsonDocument settingsDoc(cellSettingsArray);
-                        settingsFile.write(settingsDoc.toJson());
-                        settingsFile.close();
-                    }
+
+                    QString cellText = item->text();
+                    rowContents << cellText;
+
+                    // Сохраняем настройки ячейки
+                    QJsonObject cellSettings;
+                    cellSettings["textColor"] = item->foreground().color().name();
+                    cellSettings["backgroundColor"] = item->background().color().name();
+                    cellSettings["font"] = item->font().toString();
+                    qDebug() << item->font().toString();
+                    cellSettings["alignment"] = item->textAlignment();
+                    rowCellSettings.append(cellSettings);
+                }
+
+                out << rowContents.join(",") << "\n";
+                cellSettingsArray.append(rowCellSettings);
+            }
+
+            // Сохраняем настройки в JSON файл
+            QFileInfo fileInfo(filePath);
+            QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
+
+            QDir settingsDir(relativePath);
+            if (!settingsDir.exists() && !settingsDir.mkpath("."))
+            {
+                qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
+                return;
+            }
+            QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
+            QFile settingsFile(jsonFilePath);
+            if (settingsFile.open(QIODevice::WriteOnly))
+            {
+                QJsonDocument settingsDoc(cellSettingsArray);
+                settingsFile.write(settingsDoc.toJson());
+                settingsFile.close();
+            }
             tableWidget->setProperty("modified", false);
             file.close();
         }
@@ -354,52 +389,56 @@ void MainWindow::on_SaveFile_triggered()
 
             // Записываем данные таблицы в файл
             QJsonArray cellSettingsArray;
-                    for (int i = 0; i < rows; ++i) {
-                        QStringList rowContents;
-                        QJsonArray rowCellSettings;
+            for (int i = 0; i < rows; ++i)
+            {
+                QStringList rowContents;
+                QJsonArray rowCellSettings;
 
-                        for (int j = 0; j < columns; ++j) {
-                            QTableWidgetItem *item = tableWidget->item(i, j);
+                for (int j = 0; j < columns; ++j)
+                {
+                    QTableWidgetItem *item = tableWidget->item(i, j);
 
-                            // Проверка на nullptr
-                            if (!item) {
-                                item = new QTableWidgetItem("");  // Создаем пустую ячейку, если она не существует
-                                tableWidget->setItem(i, j, item);
-                            }
-
-                            QString cellText = item->text();
-                            rowContents << cellText;
-
-                            // Сохраняем настройки ячейки
-                            QJsonObject cellSettings;
-                            cellSettings["textColor"] = item->foreground().color().name();
-                            cellSettings["backgroundColor"] = item->background().color().name();
-                            cellSettings["font"] = item->font().toString();
-                            cellSettings["alignment"] = item->textAlignment();
-                            rowCellSettings.append(cellSettings);
-                        }
-
-                        out << rowContents.join(",") << "\n";
-                        cellSettingsArray.append(rowCellSettings);
-                    }
-
-                    // Сохраняем настройки в JSON файл
-                    QFileInfo fileInfo(filePath);
-                    QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
-
-                    QDir settingsDir(relativePath);
-                    if (!settingsDir.exists() && !settingsDir.mkpath("."))
+                    // Проверка на nullptr
+                    if (!item)
                     {
-                        qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
-                        return;
+                        item = new QTableWidgetItem(""); // Создаем пустую ячейку, если она не существует
+                        tableWidget->setItem(i, j, item);
                     }
-                    QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
-                    QFile settingsFile(jsonFilePath);
-                    if (settingsFile.open(QIODevice::WriteOnly)) {
-                        QJsonDocument settingsDoc(cellSettingsArray);
-                        settingsFile.write(settingsDoc.toJson());
-                        settingsFile.close();
-                    }
+
+                    QString cellText = item->text();
+                    rowContents << cellText;
+
+                    // Сохраняем настройки ячейки
+                    QJsonObject cellSettings;
+                    cellSettings["textColor"] = item->foreground().color().name();
+                    cellSettings["backgroundColor"] = item->background().color().name();
+                    cellSettings["font"] = item->font().toString();
+                    cellSettings["alignment"] = item->textAlignment();
+                    rowCellSettings.append(cellSettings);
+                }
+
+                out << rowContents.join(",") << "\n";
+                cellSettingsArray.append(rowCellSettings);
+            }
+
+            // Сохраняем настройки в JSON файл
+            QFileInfo fileInfo(filePath);
+            QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
+
+            QDir settingsDir(relativePath);
+            if (!settingsDir.exists() && !settingsDir.mkpath("."))
+            {
+                qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
+                return;
+            }
+            QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
+            QFile settingsFile(jsonFilePath);
+            if (settingsFile.open(QIODevice::WriteOnly))
+            {
+                QJsonDocument settingsDoc(cellSettingsArray);
+                settingsFile.write(settingsDoc.toJson());
+                settingsFile.close();
+            }
 
             file.close();
             // Устанавливаем путь в качестве подсказки на вкладке
@@ -446,53 +485,57 @@ void MainWindow::on_SaveFileAs_triggered()
         int columns = tableWidget->columnCount();
 
         QJsonArray cellSettingsArray;
-                for (int i = 0; i < rows; ++i) {
-                    QStringList rowContents;
-                    QJsonArray rowCellSettings;
+        for (int i = 0; i < rows; ++i)
+        {
+            QStringList rowContents;
+            QJsonArray rowCellSettings;
 
-                    for (int j = 0; j < columns; ++j) {
-                        QTableWidgetItem *item = tableWidget->item(i, j);
+            for (int j = 0; j < columns; ++j)
+            {
+                QTableWidgetItem *item = tableWidget->item(i, j);
 
-                        // Проверка на nullptr
-                        if (!item) {
-                            item = new QTableWidgetItem("");  // Создаем пустую ячейку, если она не существует
-                            tableWidget->setItem(i, j, item);
-                        }
-
-                        QString cellText = item->text();
-                        rowContents << cellText;
-
-                        // Сохраняем настройки ячейки
-                        QJsonObject cellSettings;
-                        cellSettings["textColor"] = item->foreground().color().name();
-                        cellSettings["backgroundColor"] = item->background().color().name();
-                        cellSettings["font"] = item->font().toString();
-                        qDebug()<<item->font().toString();
-                        cellSettings["alignment"] = item->textAlignment();
-                        rowCellSettings.append(cellSettings);
-                    }
-
-                    out << rowContents.join(",") << "\n";
-                    cellSettingsArray.append(rowCellSettings);
-                }
-
-                // Сохраняем настройки в JSON файл
-                QFileInfo fileInfo(filePath);
-                QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
-
-                QDir settingsDir(relativePath);
-                if (!settingsDir.exists() && !settingsDir.mkpath("."))
+                // Проверка на nullptr
+                if (!item)
                 {
-                    qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
-                    return;
+                    item = new QTableWidgetItem(""); // Создаем пустую ячейку, если она не существует
+                    tableWidget->setItem(i, j, item);
                 }
-                QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
-                QFile settingsFile(jsonFilePath);
-                if (settingsFile.open(QIODevice::WriteOnly)) {
-                    QJsonDocument settingsDoc(cellSettingsArray);
-                    settingsFile.write(settingsDoc.toJson());
-                    settingsFile.close();
-                }
+
+                QString cellText = item->text();
+                rowContents << cellText;
+
+                // Сохраняем настройки ячейки
+                QJsonObject cellSettings;
+                cellSettings["textColor"] = item->foreground().color().name();
+                cellSettings["backgroundColor"] = item->background().color().name();
+                cellSettings["font"] = item->font().toString();
+                qDebug() << item->font().toString();
+                cellSettings["alignment"] = item->textAlignment();
+                rowCellSettings.append(cellSettings);
+            }
+
+            out << rowContents.join(",") << "\n";
+            cellSettingsArray.append(rowCellSettings);
+        }
+
+        // Сохраняем настройки в JSON файл
+        QFileInfo fileInfo(filePath);
+        QString relativePath = "../Visual_Lab5/Lab_5/tabSettings";
+
+        QDir settingsDir(relativePath);
+        if (!settingsDir.exists() && !settingsDir.mkpath("."))
+        {
+            qDebug() << "Unable to create directory: " << settingsDir.absolutePath();
+            return;
+        }
+        QString jsonFilePath = settingsDir.absoluteFilePath(fileInfo.fileName() + ".json");
+        QFile settingsFile(jsonFilePath);
+        if (settingsFile.open(QIODevice::WriteOnly))
+        {
+            QJsonDocument settingsDoc(cellSettingsArray);
+            settingsFile.write(settingsDoc.toJson());
+            settingsFile.close();
+        }
 
         file.close();
         ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), filePath);
@@ -835,11 +878,13 @@ void MainWindow::on_Clear_triggered()
 {
     pageIndex = ui->tabWidget->currentIndex();
     QWidget *widget = ui->tabWidget->widget(pageIndex);
-    editor = qobject_cast<QTextEdit*>(widget);
-    if (!this->tempFile.isOpen() && !this->tempFile.open()) {
-               return; // Открываем временный файл
-       }
-    if(editor){
+    editor = qobject_cast<QTextEdit *>(widget);
+    if (!this->tempFile.isOpen() && !this->tempFile.open())
+    {
+        return; // Открываем временный файл
+    }
+    if (editor)
+    {
         this->tempFile.write(editor->document()->toPlainText().toUtf8());
         this->tempFile.flush();
         this->tempFile.close();
@@ -851,7 +896,7 @@ void MainWindow::on_Clear_triggered()
 void MainWindow::on_Undo_triggered()
 {
     QWidget *widget = ui->tabWidget->widget(pageIndex);
-    editor = qobject_cast<QTextEdit*>(widget);
+    editor = qobject_cast<QTextEdit *>(widget);
     if (editor)
     {
         if (this->tempFile.exists())
@@ -874,9 +919,12 @@ void MainWindow::on_Undo_triggered()
 
 void MainWindow::on_Copy_triggered()
 {
-    if (auto currentWidget = ui->tabWidget->currentWidget()) {
-        if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
-            if (textEdit->textCursor().hasSelection()) {
+    if (auto currentWidget = ui->tabWidget->currentWidget())
+    {
+        if (auto textEdit = qobject_cast<QTextEdit *>(currentWidget))
+        {
+            if (textEdit->textCursor().hasSelection())
+            {
                 textEdit->copy();
             }
         }
@@ -885,8 +933,10 @@ void MainWindow::on_Copy_triggered()
 
 void MainWindow::on_Paste_triggered()
 {
-    if (auto currentWidget = ui->tabWidget->currentWidget()) {
-        if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
+    if (auto currentWidget = ui->tabWidget->currentWidget())
+    {
+        if (auto textEdit = qobject_cast<QTextEdit *>(currentWidget))
+        {
             textEdit->paste();
         }
     }
@@ -894,9 +944,12 @@ void MainWindow::on_Paste_triggered()
 
 void MainWindow::on_Cut_triggered()
 {
-    if (auto const currentWidget = ui->tabWidget->currentWidget()) {
-        if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
-            if (textEdit->textCursor().hasSelection()) {
+    if (auto const currentWidget = ui->tabWidget->currentWidget())
+    {
+        if (auto textEdit = qobject_cast<QTextEdit *>(currentWidget))
+        {
+            if (textEdit->textCursor().hasSelection())
+            {
                 textEdit->cut();
             }
         }
@@ -905,8 +958,10 @@ void MainWindow::on_Cut_triggered()
 
 void MainWindow::on_Redo_triggered()
 {
-    if (auto const currentWidget = ui->tabWidget->currentWidget()) {
-        if (auto textEdit = qobject_cast<QTextEdit*>(currentWidget)) {
+    if (auto const currentWidget = ui->tabWidget->currentWidget())
+    {
+        if (auto textEdit = qobject_cast<QTextEdit *>(currentWidget))
+        {
             textEdit->document()->redo();
         }
     }
@@ -968,7 +1023,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 delete currentWidget;
             }
         }
-        else if(tableWidget && tableWidget->property("modified").toBool()){
+        else if (tableWidget && tableWidget->property("modified").toBool())
+        {
             QString fileName = ui->tabWidget->tabToolTip(i);
 
             // Спрашиваем пользователя
@@ -1006,7 +1062,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
             {
                 // Пользователь решил не сохранять изменения // Отменяем изменения
                 ui->tabWidget->removeTab(i);
-                tableWidget->deleteLater();// Закрываем вкладку без сохранения
+                tableWidget->deleteLater(); // Закрываем вкладку без сохранения
                 delete currentWidget;
             }
         }
@@ -1027,7 +1083,7 @@ void MainWindow::on_Palette_triggered()
 {
     // Получаем текущий редактор или таблицу
     editor = qobject_cast<QTextEdit *>(ui->tabWidget->currentWidget());
-    QTableWidget* table = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
+    QTableWidget *table = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
 
     if (!editor && !table)
         return; // Если нет активного редактора или таблицы, выходим
@@ -1091,49 +1147,50 @@ void MainWindow::on_Palette_triggered()
     else if (table)
     {
         // Получаем текущую выбранную ячейку
-            QTableWidgetItem* currentItem = table->currentItem();
+        QTableWidgetItem *currentItem = table->currentItem();
 
-            // Если нет активной ячейки, устанавливаем активной первую попавшуюся
-            if (!currentItem)
+        // Если нет активной ячейки, устанавливаем активной первую попавшуюся
+        if (!currentItem)
+        {
+            int row = table->currentRow();
+            int col = table->currentColumn();
+            if (row >= 0 && col >= 0)
             {
-                int row = table->currentRow();
-                int col = table->currentColumn();
-                if (row >= 0 && col >= 0) {
-                    table->setCurrentCell(row, col);  // Устанавливаем ячейку как текущую
-                    currentItem = table->currentItem();
-                }
+                table->setCurrentCell(row, col); // Устанавливаем ячейку как текущую
+                currentItem = table->currentItem();
             }
+        }
 
-            if (!currentItem)
-                return; // Если нет активной ячейки, выходим
+        if (!currentItem)
+            return; // Если нет активной ячейки, выходим
 
-            // Открываем диалог выбора цвета текста
-            QColor newTextColor = QColorDialog::getColor(currentItem->foreground().color(), this, tr("Выберите цвет текста"));
+        // Открываем диалог выбора цвета текста
+        QColor newTextColor = QColorDialog::getColor(currentItem->foreground().color(), this, tr("Выберите цвет текста"));
 
-            // Открываем диалог выбора цвета фона
-            QColor newBackgroundColor = QColorDialog::getColor(currentItem->background().color(), this, tr("Выберите цвет фона"));
+        // Открываем диалог выбора цвета фона
+        QColor newBackgroundColor = QColorDialog::getColor(currentItem->background().color(), this, tr("Выберите цвет фона"));
 
-            // Если текстовый цвет не выбран, оставляем текущий или устанавливаем чёрный по умолчанию
-            if (!newTextColor.isValid())
-            {
-                newTextColor = currentItem->foreground().color().isValid() ? currentItem->foreground().color() : QColor(Qt::black);
-            }
+        // Если текстовый цвет не выбран, оставляем текущий или устанавливаем чёрный по умолчанию
+        if (!newTextColor.isValid())
+        {
+            newTextColor = currentItem->foreground().color().isValid() ? currentItem->foreground().color() : QColor(Qt::black);
+        }
 
-            // Если цвет фона не выбран или прозрачный, устанавливаем белый по умолчанию
-            if (!newBackgroundColor.isValid() || newBackgroundColor.alpha() == 0)
-            {
-                newBackgroundColor = QColor(Qt::white); // Устанавливаем белый фон
-            }
+        // Если цвет фона не выбран или прозрачный, устанавливаем белый по умолчанию
+        if (!newBackgroundColor.isValid() || newBackgroundColor.alpha() == 0)
+        {
+            newBackgroundColor = QColor(Qt::white); // Устанавливаем белый фон
+        }
 
-            // Проверка на совпадение цвета текста и фона
-            if (newTextColor == newBackgroundColor)
-            {
-                newTextColor = (newBackgroundColor.lightness() > 128) ? QColor(Qt::black) : QColor(Qt::white);
-            }
+        // Проверка на совпадение цвета текста и фона
+        if (newTextColor == newBackgroundColor)
+        {
+            newTextColor = (newBackgroundColor.lightness() > 128) ? QColor(Qt::black) : QColor(Qt::white);
+        }
 
-            // Устанавливаем цвета для ячейки
-            currentItem->setForeground(newTextColor);
-            currentItem->setBackground(newBackgroundColor);
+        // Устанавливаем цвета для ячейки
+        currentItem->setForeground(newTextColor);
+        currentItem->setBackground(newBackgroundColor);
     }
 }
 
@@ -1179,7 +1236,7 @@ void MainWindow::on_FontAndSize_triggered()
         else if (table)
         {
             // Применяем шрифт к выделенной ячейке таблицы
-            QList<QTableWidgetItem*> selectedItems = table->selectedItems();
+            QList<QTableWidgetItem *> selectedItems = table->selectedItems();
             if (!selectedItems.isEmpty())
             {
                 foreach (QTableWidgetItem *item, selectedItems)
@@ -1196,7 +1253,6 @@ void MainWindow::on_FontAndSize_triggered()
         }
     }
 }
-
 
 void MainWindow::saveTextSettings(const QString &filePath)
 {
@@ -1348,10 +1404,13 @@ void MainWindow::on_Table_triggered()
             tableWidget->setWindowTitle("Таблица");
             tableWidget->setEditTriggers(QAbstractItemView::DoubleClicked);
             tableWidget->setProperty("modified", true);
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < columns; ++j) {
+            for (int i = 0; i < rows; ++i)
+            {
+                for (int j = 0; j < columns; ++j)
+                {
                     QTableWidgetItem *item = tableWidget->item(i, j);
-                    if (!item) {
+                    if (!item)
+                    {
                         item = new QTableWidgetItem();
                         tableWidget->setItem(i, j, item);
                     }
@@ -1369,14 +1428,14 @@ void MainWindow::on_Table_triggered()
 
 void MainWindow::onTableCellChanged(int row, int column)
 {
-    Q_UNUSED(row);        // Если не используете эти параметры
-    Q_UNUSED(column);     // Если не используете эти параметры
+    Q_UNUSED(row);    // Если не используете эти параметры
+    Q_UNUSED(column); // Если не используете эти параметры
 
     QTableWidget *currentTable = qobject_cast<QTableWidget *>(ui->tabWidget->currentWidget());
-        if (currentTable)
-        {
-            currentTable->setProperty("modified", true); // Устанавливаем свойство modified в true
-        }
+    if (currentTable)
+    {
+        currentTable->setProperty("modified", true); // Устанавливаем свойство modified в true
+    }
 }
 
 void MainWindow::on_AddRow_triggered()
@@ -1506,7 +1565,6 @@ void MainWindow::on_DeleteColumn_triggered()
         }
     }
 }
-
 
 void MainWindow::on_Paddins_triggered()
 {

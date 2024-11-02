@@ -25,15 +25,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        graphiceditorwindow.cpp \
+        graphiceditor.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
-        graphiceditorwindow.h \
+        graphiceditor.h \
         mainwindow.h
 
 FORMS += \
+        graphiceditor.ui \
         mainwindow.ui
 
 # Default rules for deployment.

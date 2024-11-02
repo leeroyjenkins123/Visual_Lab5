@@ -17,11 +17,24 @@
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>0</y>
+      <x>-1</x>
+      <y>-1</y>
       <width>641</width>
-      <height>361</height>
+      <height>331</height>
      </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="GoToGraphic">
+    <property name="geometry">
+     <rect>
+      <x>-1</x>
+      <y>328</y>
+      <width>641</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Графический редактор</string>
     </property>
    </widget>
   </widget>

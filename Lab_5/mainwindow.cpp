@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "graphiceditorwindow.h"
+#include "graphiceditor.h"
 
 QTemporaryFile MainWindow::tempFile;
 
@@ -8,7 +8,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           ui(new Ui::MainWindow),
                                           editor(new QTextEdit),
                                           tableWidget(new QTableWidget),
-                                          tableModified(false)
+                                          tableModified(false),
+                                          editorWindow(nullptr)
 {
     ui->setupUi(this);
     ui->tabWidget->setTabsClosable(true);
@@ -20,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     this->setCentralWidget(centralWidget);
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(ui->tabWidget);
+    layout->addWidget(ui->GoToGraphic);
 
     centralWidget->setLayout(layout);
 
@@ -33,42 +35,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
         format.setBackground(Qt::white);
         editor->setCurrentCharFormat(format);
     }
-
-    QPushButton *createImageButton = new QPushButton("Создать картинку", this);
-    connect(createImageButton, &QPushButton::clicked, this, &MainWindow::createImage);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-
-void MainWindow::createImage()
-{
-    // Создайте новую вкладку
-    QWidget *tab = new QWidget();
-    ui->tabWidget->addTab(tab, "Картинка");
-
-    // Создайте редактор
-    GraphicEditorWindow *editor = new GraphicEditorWindow();
-    editor->show();
-
-    // Смените toolbar на toolbar для paint
-    QToolBar *paintToolBar = new QToolBar(this);
-    paintToolBar->addAction("Кисть");
-    paintToolBar->addAction("Ластик");
-    paintToolBar->addAction("Изменить фон");
-    paintToolBar->addAction("Добавить фигуру");
-    paintToolBar->addAction("Удалить фигуру");
-    addToolBar(paintToolBar);
-
-    // Установите соединения для кнопок toolbar
-    //connect(paintToolBar->actions()[0], &QAction::triggered, editor, &GraphicEditorWindow::on_brushSizeChanged);
-    connect(paintToolBar->actions()[1], &QAction::triggered, editor, &GraphicEditorWindow::on_eraserSizeChanged);
-    connect(paintToolBar->actions()[2], &QAction::triggered, editor, &GraphicEditorWindow::on_backgroundColorChanged);
-    connect(paintToolBar->actions()[3], &QAction::triggered, editor, &GraphicEditorWindow::on_addFigure);
-    connect(paintToolBar->actions()[4], &QAction::triggered, editor, &GraphicEditorWindow::on_deleteFigure);
 }
 
 void MainWindow::on_CreateNewFile_triggered()
@@ -1642,4 +1613,21 @@ void MainWindow::on_Paddins_triggered()
             tableWidget->setItem(currentRow, currentColumn, item);
         }
     }
+}
+
+void MainWindow::on_GoToGraphic_clicked()
+{
+    if(!editorWindow){
+        editorWindow = new graphiceditor(this);
+        connect(editorWindow, &graphiceditor::editorClosed, this, &MainWindow::resetEditorWindow);
+        editorWindow->show();
+    }
+    else{
+        return;
+    }
+}
+
+void MainWindow::resetEditorWindow()
+{
+    editorWindow = nullptr;
 }

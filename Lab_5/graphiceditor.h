@@ -8,6 +8,11 @@
 #include <QPixmap>
 #include <QLabel>
 #include <QScrollArea>
+#include <QFormLayout>
+#include <QComboBox>
+#include <QPen>
+#include <QBrush>
+#include <QColorDialog>
 
 namespace Ui {
 class graphiceditor;
@@ -32,6 +37,9 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
 
+private slots:
+    void on_SetPen_triggered();
+
 private:
     Ui::graphiceditor *ui;
     QLabel *imageLabel;     // QLabel для отображения изображения
@@ -39,6 +47,9 @@ private:
     QScrollArea *scrollArea; // QScrollArea для прокрутки изображения
     QPoint lastPoint_;      // Последняя точка для рисования линии
     bool isDrawing_ = false; // Флаг для отслеживания рисования
+
+    QPen currentPen;
+
 };
 
 #endif // GRAPHICEDITOR_H

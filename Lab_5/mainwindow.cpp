@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "graphiceditor.h"
 
 QTemporaryFile MainWindow::tempFile;
 
@@ -9,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           editor(new QTextEdit),
                                           tableWidget(new QTableWidget),
                                           tableModified(false),
-                                          editorWindow(nullptr)
+                                          graphicEditor(nullptr)
 {
     ui->setupUi(this);
     ui->tabWidget->setTabsClosable(true);
@@ -1604,23 +1603,22 @@ void MainWindow::on_Paddins_triggered()
         QTableWidgetItem *item = tableWidget->item(currentRow, currentColumn);
         if (item)
         {
-            item->setTextAlignment(alignment);
+            item->setTextAlignment(static_cast<int>(alignment));
         }
         else
         {
             item = new QTableWidgetItem();
-            item->setTextAlignment(alignment);
+            item->setTextAlignment(static_cast<int>(alignment));
             tableWidget->setItem(currentRow, currentColumn, item);
         }
     }
 }
 
-void MainWindow::on_GoToGraphic_clicked()
-{
-    if(!editorWindow){
-        editorWindow = new graphiceditor(this);
-        connect(editorWindow, &graphiceditor::editorClosed, this, &MainWindow::resetEditorWindow);
-        editorWindow->show();
+void MainWindow::on_GoToGraphic_clicked(){
+    if(!graphicEditor){
+        graphicEditor = new GraphicsEditor(this);
+        connect(graphicEditor, &GraphicsEditor::editorClosed, this, &MainWindow::resetEditorWindow);
+        graphicEditor->show();
     }
     else{
         return;
@@ -1629,5 +1627,5 @@ void MainWindow::on_GoToGraphic_clicked()
 
 void MainWindow::resetEditorWindow()
 {
-    editorWindow = nullptr;
+    graphicEditor = nullptr;
 }

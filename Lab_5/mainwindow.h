@@ -29,7 +29,7 @@
 #include <QRadioButton>
 #include <QTemporaryFile>
 
-#include "graphiceditor.h"
+#include "graphicseditor.h"
 
 namespace Ui {
 class MainWindow;
@@ -113,7 +113,7 @@ private:
     QString appDir = "Laboratory_5";
     bool tableModified = true;
     static QTemporaryFile tempFile;
-    graphiceditor *editorWindow;
+    GraphicsEditor *graphicEditor;
 };
 
 #endif // MAINWINDOW_H

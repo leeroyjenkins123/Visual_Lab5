@@ -24,5 +24,22 @@
         <file>images/icons/delete row.png</file>
         <file>images/icons/indent.png</file>
         <file>images/icons/row.png</file>
+        <file>build/Desktop-Debug/moc_graphiceditorwindow.cpp</file>
+        <file>build/Desktop-Debug/moc_mainwindow.cpp</file>
+        <file>build/Desktop-Debug/moc_predefs.h</file>
+        <file>build/Desktop-Debug/qrc_resources.cpp</file>
+        <file>build/Desktop-Debug/ui_mainwindow.h</file>
+        <file>images/penIcons/BevelJoin.png</file>
+        <file>images/penIcons/CustomDashLine.png</file>
+        <file>images/penIcons/Dash.png</file>
+        <file>images/penIcons/DashDotDotLine.png</file>
+        <file>images/penIcons/DashDotLine.png</file>
+        <file>images/penIcons/DotLine.png</file>
+        <file>images/penIcons/FlatCap.png</file>
+        <file>images/penIcons/MilterJoin.png</file>
+        <file>images/penIcons/RoundCap.png</file>
+        <file>images/penIcons/RoundJoin.png</file>
+        <file>images/penIcons/Solid.png</file>
+        <file>images/penIcons/SquareCap.png</file>
     </qresource>
 </RCC>

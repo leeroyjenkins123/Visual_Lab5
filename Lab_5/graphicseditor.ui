@@ -48,6 +48,7 @@
    <addaction name="BackColor"/>
    <addaction name="SetPen"/>
    <addaction name="Clear"/>
+   <addaction name="AddFigure"/>
   </widget>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
@@ -73,6 +74,11 @@
   <action name="Clear">
    <property name="text">
     <string>Очистка</string>
+   </property>
+  </action>
+  <action name="AddFigure">
+   <property name="text">
+    <string>Добавить фигуру</string>
    </property>
   </action>
  </widget>

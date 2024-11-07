@@ -41,5 +41,6 @@
         <file>images/penIcons/RoundJoin.png</file>
         <file>images/penIcons/Solid.png</file>
         <file>images/penIcons/SquareCap.png</file>
+        <file>images/wall.jpg</file>
     </qresource>
 </RCC>

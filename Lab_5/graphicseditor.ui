@@ -49,6 +49,7 @@
    <addaction name="SetPen"/>
    <addaction name="Clear"/>
    <addaction name="AddFigure"/>
+   <addaction name="DeleteFigure"/>
   </widget>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
@@ -79,6 +80,11 @@
   <action name="AddFigure">
    <property name="text">
     <string>Добавить фигуру</string>
+   </property>
+  </action>
+  <action name="DeleteFigure">
+   <property name="text">
+    <string>Удалить фигуру</string>
    </property>
   </action>
  </widget>

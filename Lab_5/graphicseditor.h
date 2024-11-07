@@ -44,6 +44,8 @@ private slots:
     void on_AddFigure_triggered();
     void addShape(QString shapeType, QRectF rect, QColor fillColor, QColor strokeColor, int strokeWidth);
 
+    void on_DeleteFigure_triggered();
+
 private:
     Ui::GraphicsEditor *ui;
     QGraphicsScene *scene;

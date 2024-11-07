@@ -202,6 +202,7 @@ void GraphicsEditor::on_AddFigure_triggered()
     shapeComboBox->addItem("Треугольник", "Triangle");
     shapeComboBox->addItem("Круг", "Circle");
     shapeComboBox->addItem("Эллипс", "Ellipse");
+    shapeComboBox->setCurrentIndex(0);
     formLayout->addRow(tr("Тип фигуры:"), shapeComboBox);
 
     // Ввод размеров (ширина и высота)
@@ -214,6 +215,8 @@ void GraphicsEditor::on_AddFigure_triggered()
     heightSpinBox->setRange(1, 1000);
     heightSpinBox->setValue(100);
     formLayout->addRow(tr("Высота:"), heightSpinBox);
+
+
 
     // Выбор цвета заливки
     QPushButton *fillColorButton = new QPushButton(tr("Цвет заливки"));
@@ -252,6 +255,35 @@ void GraphicsEditor::on_AddFigure_triggered()
     // Кнопка ОК
     QPushButton *okButton = new QPushButton(tr("ОК"));
     layout->addWidget(okButton);
+
+    connect(shapeComboBox, &QComboBox::currentTextChanged, [&](const QString &type) {
+        disconnect(widthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), nullptr, nullptr);
+            if (type == "Квадрат") {
+                heightSpinBox->setEnabled(false); // Выключаем изменение высоты для квадрата
+                heightSpinBox->setValue(widthSpinBox->value());
+                connect(widthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+                    heightSpinBox->setValue(value); // Связываем высоту с шириной
+                });
+            } else {
+                heightSpinBox->setEnabled(true); // Включаем изменение высоты для других фигур
+            }
+
+            if (type == "Круг") {
+                heightSpinBox->setEnabled(false); // Оставляем только одно поле для радиуса
+                heightSpinBox->setValue(widthSpinBox->value());
+                connect(widthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
+                    heightSpinBox->setValue(value); // Радиус у круга одинаков
+                });
+            } else {
+                heightSpinBox->setEnabled(true); // Включаем второе поле для эллипса и прямоугольника
+            }
+
+            if (type == "Эллипс") {
+                heightSpinBox->setEnabled(true); // Включаем оба поля для эллипса
+            }
+        });
+
+    shapeComboBox->setCurrentIndex(0);
 
     connect(okButton, &QPushButton::clicked, [&]() {
         // Получаем значения из формы
@@ -303,4 +335,16 @@ void GraphicsEditor::addShape(QString shapeType, QRectF rect, QColor fillColor, 
         shape->setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 
     }
+}
+
+void GraphicsEditor::on_DeleteFigure_triggered()
+{
+    // Получаем список всех выбранных объектов на сцене
+        QList<QGraphicsItem *> selectedItems = scene->selectedItems();
+
+        // Удаляем все выбранные объекты
+        foreach (QGraphicsItem *item, selectedItems) {
+            scene->removeItem(item); // Убираем из сцены
+            delete item;              // Удаляем объект
+        }
 }

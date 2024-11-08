@@ -77,6 +77,7 @@ void GraphicsView::mouseMoveEvent(QMouseEvent *event)
         // Добавляем линию на сцену
         QGraphicsPathItem *line = scene()->addPath(path, currentPen);
         line->setZValue(1);
+        line->setData(0, "user");
 
         lastPoint = currentPoint; // Обновляем последнюю точку
     }

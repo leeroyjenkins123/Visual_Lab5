@@ -5,7 +5,7 @@ GraphicsEditor::GraphicsEditor(QWidget *parent) : QMainWindow(parent),
                                                   ui(new Ui::GraphicsEditor),
                                                   currentColor(Qt::white),
                                                   currentPen(Qt::black),
-                                                  topWall(nullptr), bottomWall(nullptr), leftWall(nullptr), rightWall(nullptr)
+                                                  topWall(nullptr), bottomWall(nullptr), leftWall(nullptr), rightWall(nullptr), collisionSound(":/res/sound.wav")
 {
     ui->setupUi(this);
 
@@ -23,6 +23,15 @@ GraphicsEditor::GraphicsEditor(QWidget *parent) : QMainWindow(parent),
     setupWalls();
 
     drawKapustin();
+
+    createMovingObject();
+
+        // Таймер для перемещения объекта
+        QTimer *timer = new QTimer(this);
+        connect(timer, &QTimer::timeout, this, [this]() {
+            moveObject(); // Функция перемещения и обнаружения столкновений
+        });
+        timer->start(30); // Интервал обновления, например, 30 мс
 }
 
 GraphicsEditor::~GraphicsEditor()
@@ -32,10 +41,25 @@ GraphicsEditor::~GraphicsEditor()
 
 void GraphicsEditor::closeEvent(QCloseEvent *event)
 {
+    // Удаление всех движущихся объектов
+    for (QGraphicsItemGroup *itemGroup : movingItemGroups) {
+        QList<QGraphicsItem *> children = itemGroup->childItems();
+        for (QGraphicsItem *child : children) {
+            scene->removeItem(child);
+            delete child;
+        }
+        scene->removeItem(itemGroup);
+        delete itemGroup;
+    }
+    movingItemGroups.clear();
+    velocities.clear();
+
+    // Останавливаем звук
+    collisionSound.stop();
+
     emit editorClosed();
     QMainWindow::closeEvent(event);
 }
-
 void GraphicsEditor::on_BackColor_triggered()
 {
     QColor color = QColorDialog::getColor(currentColor, this, "Choose Background Color");
@@ -44,6 +68,74 @@ void GraphicsEditor::on_BackColor_triggered()
     {
         scene->setBackgroundBrush(color);
         currentColor = color;
+    }
+}
+
+void GraphicsEditor::createMovingObject()
+{
+    // Создание нескольких фигур для составного объекта
+    QGraphicsEllipseItem *circle = new QGraphicsEllipseItem(0, 0, 30, 30);
+    circle->setBrush(Qt::blue);
+
+    QGraphicsRectItem *rect = new QGraphicsRectItem(15, 15, 30, 30);
+    rect->setBrush(Qt::red);
+
+    // Группируем фигуры в один объект
+    QGraphicsItemGroup *movingItemGroup = new QGraphicsItemGroup();
+    movingItemGroup->addToGroup(circle);
+    movingItemGroup->addToGroup(rect);
+
+    // Добавляем объект на сцену
+    movingItemGroup->setFlag(QGraphicsItem::ItemIsSelectable, true);
+    scene->addItem(movingItemGroup);
+    movingItemGroup->setPos(100, 100);  // Начальная позиция объекта
+
+    // Добавляем объект и его начальную скорость в соответствующие списки
+    movingItemGroups.append(movingItemGroup);
+    velocities.append(QPointF(2, 2)); // Скорость по осям X и Y
+}
+
+void GraphicsEditor::moveObject()
+{
+    int wallThickness = 10;
+
+    for (int i = 0; i < movingItemGroups.size(); ++i) {
+        QGraphicsItemGroup *itemGroup = movingItemGroups[i];
+        QPointF velocity = velocities[i];
+        QPointF newPos = itemGroup->pos() + velocity;
+
+        // Проверка столкновения с левой и правой стенами
+        if (newPos.x() <= wallThickness || newPos.x() >= scene->width() - wallThickness - itemGroup->boundingRect().width()) {
+            velocity.setX(-velocity.x()); // Меняем направление по оси X
+            collisionSound.play();  // Звук столкновения
+        }
+
+        // Проверка столкновения с верхней и нижней стенами
+        if (newPos.y() <= wallThickness || newPos.y() >= scene->height() - wallThickness - itemGroup->boundingRect().height()) {
+            velocity.setY(-velocity.y());  // Меняем направление по оси Y
+           collisionSound.play();  // Звук столкновения
+        }
+
+        // Проверка столкновения с другими объектами на сцене
+        QList<QGraphicsItem *> itemsAtNewPos = scene->items(newPos);
+        bool collisionDetected = false;
+        for (QGraphicsItem *otherItem : itemsAtNewPos) {
+            if (otherItem != itemGroup && itemGroup->collidesWithItem(otherItem) && otherItem->data(0) != "user") {
+                collisionDetected = true;
+                break;
+            }
+        }
+
+        if (collisionDetected) {
+
+            velocity.setX(-velocity.x()); // Изменяем направление по оси X при столкновении
+            velocity.setY(-velocity.y()); // Изменяем направление по оси Y при столкновении
+            collisionSound.play();  // Звук столкновения
+        }
+
+        // Обновляем позицию объекта и скорость
+        itemGroup->setPos(newPos);
+        velocities[i] = velocity;
     }
 }
 
@@ -128,25 +220,28 @@ void GraphicsEditor::on_SetPen_triggered()
 void GraphicsEditor::on_Clear_triggered()
 {
 
-        // Получаем список всех объектов на сцене
-        QList<QGraphicsItem *> items = scene->items();
+    // Останавливаем движение всех объектов (если они двигаются)
+    for (int i = 0; i < movingItemGroups.size(); ++i) {
+        // Останавливаем все анимации или действия, связанные с движущимися объектами
+        movingItemGroups[i]->setPos(QPointF(0, 0));  // Пример остановки движения
+    }
 
-        // Удаляем все объекты, кроме стен
-        foreach (QGraphicsItem *item, items) {
-            // Проверяем, что это не стена
-            if (item != topWall && item != bottomWall && item != leftWall && item != rightWall) {
-                scene->removeItem(item);  // Убираем из сцены
-                delete item;              // Удаляем объект
-            }
+    QList<QGraphicsItem *> items = scene->items();
+    // Удаляем все объекты, кроме стен
+    foreach (QGraphicsItem *item, items) {
+        // Проверяем, что это не стена
+        if (item != topWall && item != bottomWall && item != leftWall && item != rightWall) {
+            scene->removeItem(item);  // Убираем из сцены
+            movingItemGroups.removeAll(qgraphicsitem_cast<QGraphicsItemGroup*>(item));
+            delete item;              // Немедленное удаление объекта
         }
+    }
 
-        // Опционально можно перерисовать стены, чтобы они точно остались на месте
-        setupWalls();
+    // Опционально можно перерисовать стены, чтобы они точно остались на месте
+    setupWalls();
 
-
-    scene->setBackgroundBrush(Qt::white);  // Reset background color if necessary
+    scene->setBackgroundBrush(Qt::white);  // Сброс фона (если нужно)
 }
-
 
 void GraphicsEditor::resizeEvent(QResizeEvent *event)
 {
@@ -387,6 +482,8 @@ void GraphicsEditor::on_DeleteFigure_triggered()
             // Если это группа, выводим информацию и удаляем её элементы
             qDebug() << "Removing group with child items.";
 
+            movingItemGroups.removeAll(group);
+
             QList<QGraphicsItem *> children = group->childItems();
             for (QGraphicsItem *child : children) {
                 qDebug() << "Removing child item:" << child;
@@ -408,10 +505,6 @@ void GraphicsEditor::on_DeleteFigure_triggered()
     scene->update();
     qDebug() << "Scene updated after deletion.";
 }
-
-
-
-
 
 void GraphicsEditor::drawKapustin() {
     //  K

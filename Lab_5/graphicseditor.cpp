@@ -11,12 +11,13 @@ GraphicsEditor::GraphicsEditor(QWidget *parent) : QMainWindow(parent),
 
     scene = new QGraphicsScene(this);
     view = new GraphicsView(scene, this);
+    setCentralWidget(view);
     view->setRenderHint(QPainter::Antialiasing);
     view->setRenderHint(QPainter::SmoothPixmapTransform);
     view->setAlignment(Qt::AlignTop | Qt::AlignLeft);                         // Выравнивание области просмотра
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);                // Включаем горизонтальную полосу прокрутки
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);                  // Включаем вертикальную полосу прокрутки
-    setCentralWidget(view);                                                   // Устанавливаем наш view как центральный виджет
+                                                       // Устанавливаем наш view как центральный виджет
 
     connect(view, &GraphicsView::viewportChanged, this, &GraphicsEditor::updateWallPositions);
     connect(view, &GraphicsView::resized, this, &GraphicsEditor::setupWalls); // Подключение сигнала resized к setupWalls
@@ -26,7 +27,7 @@ GraphicsEditor::GraphicsEditor(QWidget *parent) : QMainWindow(parent),
 
     createMovingObject();
 
-        // Таймер для перемещения объекта
+//         Таймер для перемещения объекта
         QTimer *timer = new QTimer(this);
         connect(timer, &QTimer::timeout, this, [this]() {
             moveObject(); // Функция перемещения и обнаружения столкновений
@@ -74,24 +75,33 @@ void GraphicsEditor::on_BackColor_triggered()
 void GraphicsEditor::createMovingObject()
 {
     // Создание нескольких фигур для составного объекта
-    QGraphicsEllipseItem *circle = new QGraphicsEllipseItem(0, 0, 30, 30);
-    circle->setBrush(Qt::blue);
-
-    QGraphicsRectItem *rect = new QGraphicsRectItem(15, 15, 30, 30);
-    rect->setBrush(Qt::red);
+    QGraphicsRectItem *body = new QGraphicsRectItem(15, 15, 75, 45);
+    body->setBrush(Qt::darkGray);
+    QGraphicsRectItem *cab = new QGraphicsRectItem(55, -5, 35, 35);
+    cab->setBrush(Qt::lightGray);
+    QGraphicsRectItem *smoke = new QGraphicsRectItem(25, 0, 25, 30);
+    smoke->setBrush(Qt::lightGray);
+    QGraphicsEllipseItem *wheel1 = new QGraphicsEllipseItem(20, 40, 30, 30);
+    wheel1->setBrush(Qt::lightGray);
+    QGraphicsEllipseItem *wheel2 = new QGraphicsEllipseItem(55, 40, 30, 30);
+    wheel2->setBrush(Qt::lightGray);
 
     // Группируем фигуры в один объект
-    QGraphicsItemGroup *movingItemGroup = new QGraphicsItemGroup();
-    movingItemGroup->addToGroup(circle);
-    movingItemGroup->addToGroup(rect);
+    QGraphicsItemGroup *train = new QGraphicsItemGroup();
+    train->addToGroup(body);
+    train->addToGroup(cab);
+    train->addToGroup(smoke);
+    train->addToGroup(wheel1);
+    train->addToGroup(wheel2);
 
     // Добавляем объект на сцену
-    movingItemGroup->setFlag(QGraphicsItem::ItemIsSelectable, true);
-    scene->addItem(movingItemGroup);
-    movingItemGroup->setPos(100, 100);  // Начальная позиция объекта
+    train->setFlag(QGraphicsItem::ItemIsSelectable, true);
+    scene->addItem(train);
+
+    train->setPos(400, 500);  // Начальная позиция объекта
 
     // Добавляем объект и его начальную скорость в соответствующие списки
-    movingItemGroups.append(movingItemGroup);
+    movingItemGroups.append(train);
     velocities.append(QPointF(2, 2)); // Скорость по осям X и Y
 }
 
@@ -105,22 +115,35 @@ void GraphicsEditor::moveObject()
         QPointF newPos = itemGroup->pos() + velocity;
 
         // Проверка столкновения с левой и правой стенами
-        if (newPos.x() <= wallThickness || newPos.x() >= scene->width() - wallThickness - itemGroup->boundingRect().width()) {
-            velocity.setX(-velocity.x()); // Меняем направление по оси X
-            collisionSound.play();  // Звук столкновения
-        }
+        QRectF boundingRect = itemGroup->boundingRect();
+                qreal left = newPos.x();
+                qreal right = newPos.x() + boundingRect.width();
+                qreal top = newPos.y();
+                qreal bottom = newPos.y() + boundingRect.height();
 
-        // Проверка столкновения с верхней и нижней стенами
-        if (newPos.y() <= wallThickness || newPos.y() >= scene->height() - wallThickness - itemGroup->boundingRect().height()) {
-            velocity.setY(-velocity.y());  // Меняем направление по оси Y
-           collisionSound.play();  // Звук столкновения
-        }
+                // Проверка столкновения с левой и правой стенами
+                if (left <= wallThickness) {
+                    velocity.setX(-velocity.x());
+                    collisionSound.play();
+                } else if (right >= view->viewport()->width() - 2*wallThickness) {
+                    velocity.setX(-velocity.x());
+                    collisionSound.play();
+                }
+
+                // Проверка столкновения с верхней и нижней стенами
+                if (top <= wallThickness) {
+                    velocity.setY(-velocity.y());
+                    collisionSound.play();
+                } else if (bottom >= view->viewport()->height() - wallThickness) {
+                    velocity.setY(-velocity.y());
+                    collisionSound.play();
+                }
 
         // Проверка столкновения с другими объектами на сцене
         QList<QGraphicsItem *> itemsAtNewPos = scene->items(newPos);
         bool collisionDetected = false;
         for (QGraphicsItem *otherItem : itemsAtNewPos) {
-            if (otherItem != itemGroup && itemGroup->collidesWithItem(otherItem) && otherItem->data(0) != "user") {
+            if (otherItem != itemGroup && itemGroup->collidesWithItem(otherItem, Qt::IntersectsItemShape) && otherItem->data(0) != "user") {
                 collisionDetected = true;
                 break;
             }
@@ -219,7 +242,6 @@ void GraphicsEditor::on_SetPen_triggered()
 
 void GraphicsEditor::on_Clear_triggered()
 {
-
     // Останавливаем движение всех объектов (если они двигаются)
     for (int i = 0; i < movingItemGroups.size(); ++i) {
         // Останавливаем все анимации или действия, связанные с движущимися объектами

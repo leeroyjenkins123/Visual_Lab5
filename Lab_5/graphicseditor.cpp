@@ -691,3 +691,35 @@ Qt::BrushStyle GraphicsEditor::stringToBrushStyle(const QString &styleStr) {
         return Qt::NoBrush;  // Default if no match
     }
 }
+
+void GraphicsEditor::on_Eraser_triggered()
+{QDialog dialog(this);
+    dialog.setWindowTitle(tr("Размер ластика"));
+
+    // Create label, spin box, and OK button for the dialog
+    QLabel *label = new QLabel(tr("Выбери размер ластика:"), &dialog);
+    QSpinBox *sizeSpinBox = new QSpinBox(&dialog);
+    sizeSpinBox->setRange(1, 100);      // Set range for eraser size
+    sizeSpinBox->setValue(10);          // Default size
+
+    QPushButton *okButton = new QPushButton(tr("OK"), &dialog);
+    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    // Arrange widgets in a vertical layout
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    layout->addWidget(label);
+    layout->addWidget(sizeSpinBox);
+    layout->addWidget(okButton);
+
+    // Show dialog and get result
+    if (dialog.exec() == QDialog::Accepted) {
+        int eraserSize = sizeSpinBox->value();
+
+        // Set the eraser size as the current pen width and activate eraser mode
+        QPen eraserPen;
+        eraserPen.setColor(scene->backgroundBrush().color());  // Set eraser color to match the background
+        eraserPen.setWidth(eraserSize);
+
+        view->setPen(eraserPen);   // Set the pen in view as eraser
+        view->setEraserMode(true); // Use the public setter to activate eraser mode
+    }}

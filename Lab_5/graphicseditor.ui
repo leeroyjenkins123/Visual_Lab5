@@ -50,6 +50,7 @@
    <addaction name="Clear"/>
    <addaction name="AddFigure"/>
    <addaction name="DeleteFigure"/>
+   <addaction name="Eraser"/>
   </widget>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
@@ -85,6 +86,11 @@
   <action name="DeleteFigure">
    <property name="text">
     <string>Удалить фигуру</string>
+   </property>
+  </action>
+  <action name="Eraser">
+   <property name="text">
+    <string>Ластик</string>
    </property>
   </action>
  </widget>

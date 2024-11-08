@@ -23,6 +23,12 @@ void GraphicsView::setPen(const QPen &pen)
     currentPen = pen;
 }
 
+void GraphicsView::setEraserMode(bool mode)
+{
+    isEraserMode = mode;
+}
+
+
 void GraphicsView::scrollContentsBy(int dx, int dy)
 {
     QGraphicsView::scrollContentsBy(dx, dy);
@@ -52,13 +58,56 @@ void GraphicsView::mousePressEvent(QMouseEvent *event)
             isMovingShape = false;
             lastPoint = mapToScene(event->pos()).toPoint(); // Запоминаем точку нажатия
         }
+        else if (isEraserMode && event->button() == Qt::LeftButton)
+                {
+                    // Start erasing on left mouse button press
+                    isDrawing = true;
+                    lastPoint = mapToScene(event->pos()).toPoint(); // Capture initial point for eraser
+                }
 
     QGraphicsView::mousePressEvent(event); // Не забываем вызвать базовый метод
 }
 
 void GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
-    if (isDrawing && !isMovingShape)
+    if (isEraserMode && isDrawing) {
+            QPoint currentPoint = mapToScene(event->pos()).toPoint();
+            QPainterPath eraserPath;
+            eraserPath.addEllipse(currentPoint, currentPen.width() / 2, currentPen.width() / 2); // Задаем область ластика
+
+            QList<QGraphicsItem*> itemsToErase = scene()->items(eraserPath); // Находим объекты в области ластика
+            GraphicsEditor* editor = qobject_cast<GraphicsEditor*>(parent());
+
+            if (editor) {
+                QList<QGraphicsItemGroup*> movingGroups = editor->getMovingItemGroups();
+
+                for (QGraphicsItem* item : itemsToErase) {
+                    bool isUserCreated = item->data(0) == "user";
+
+                    QGraphicsItem* topLevelItem = item->topLevelItem();
+
+                    bool isPartOfMovingGroup = movingGroups.contains(dynamic_cast<QGraphicsItemGroup*>(topLevelItem));
+
+                    if (isUserCreated && !isPartOfMovingGroup) {
+                        // Получаем текущий размер объекта
+                        QRectF bounds = item->boundingRect();
+                        qreal scaleFactor = 0.9;  // Коэффициент уменьшения (настраиваемый)
+
+                        if (bounds.width() > 5 && bounds.height() > 5) {
+                            // Уменьшаем размер объекта, если он ещё достаточно велик
+                            item->setScale(item->scale() * scaleFactor);
+                        } else {
+                            // Если объект уже очень мал, удаляем его
+                            scene()->removeItem(item);
+                            delete item;
+                        }
+                    }
+                }
+            }
+
+            lastPoint = currentPoint; // Обновляем точку для плавного стирания
+        }
+    else if (isDrawing && !isMovingShape)
     {
         // Если точка находится за пределами окна, прекращаем рисование
         if (!viewport()->rect().adjusted(

@@ -17,6 +17,7 @@
 #include <QSound>
 #include <QRandomGenerator>
 #include <QtMath>
+#include <QLabel>
 
 #include "graphicsview.h" // Подключаем наш новый класс GraphicsView
 
@@ -36,6 +37,7 @@ public:
         QGraphicsPixmapItem* getBottomWall() const { return bottomWall; }
         QGraphicsPixmapItem* getLeftWall() const { return leftWall; }
         QGraphicsPixmapItem* getRightWall() const { return rightWall; }
+        QList<QGraphicsItemGroup*> getMovingItemGroups() const { return movingItemGroups; }
 
 signals:
     void editorClosed();
@@ -60,6 +62,8 @@ private slots:
     void createMovingObject();
     void moveObject();
 
+
+    void on_Eraser_triggered();
 
 private:
     Ui::GraphicsEditor *ui;

@@ -1,4 +1,5 @@
 #include "graphicsview.h"
+#include "graphicseditor.h"
 
 GraphicsView::GraphicsView(QGraphicsScene *scene, QWidget *parent) : QGraphicsView(scene, parent),
                                                                      currentColor(Qt::black),
@@ -34,10 +35,15 @@ void GraphicsView::mousePressEvent(QMouseEvent *event)
         // Проверяем, находится ли точка в пределах окна
         // viewport()->rect().contains(event->pos())
         QGraphicsItem *selectedItem = scene()->itemAt(mapToScene(event->pos()), QTransform());
-        if (selectedItem && selectedItem->flags().testFlag(QGraphicsItem::ItemIsMovable)) {
-                isMovingShape = true;  // Устанавливаем флаг перемещения
-                selectedItem->setZValue(1);
-            }
+
+        if(selectedItem){
+            QGraphicsItemGroup *itemGroup = dynamic_cast<QGraphicsItemGroup *>(selectedItem->topLevelItem());
+                    if (selectedItem->flags().testFlag(QGraphicsItem::ItemIsMovable) || (itemGroup && itemGroup->flags().testFlag(QGraphicsItem::ItemIsMovable))) {
+                        isMovingShape = true;  // Устанавливаем флаг перемещения
+                        selectedItem->setZValue(1);
+                        lastMousePos = event->pos();
+                    }
+        }
         else if (event->button() == Qt::LeftButton && viewport()->rect().adjusted(
                     10, 10,
                     -10, -10).contains(event->pos()))
@@ -70,18 +76,66 @@ void GraphicsView::mouseMoveEvent(QMouseEvent *event)
 
         // Добавляем линию на сцену
         QGraphicsPathItem *line = scene()->addPath(path, currentPen);
-        line->setZValue(-1);
+        line->setZValue(1);
 
         lastPoint = currentPoint; // Обновляем последнюю точку
     }
+    else if (isMovingShape) {
+           QGraphicsItem *selectedItem = scene()->itemAt(mapToScene(event->pos()), QTransform());
+
+                   if (selectedItem) {
+
+                       // Проверяем, является ли элемент частью группы
+                       QGraphicsItemGroup *itemGroup = dynamic_cast<QGraphicsItemGroup *>(selectedItem->topLevelItem());
+                       if (itemGroup) {
+                           // Перемещаем всю группу
+                           QPointF currentPos = itemGroup->pos();
+                           QPointF delta = mapToScene(event->pos()) - mapToScene(lastMousePos);  // Смещение от предыдущей позиции
+
+                           // Проверка на столкновение с границами
+                           GraphicsEditor* editor = qobject_cast<GraphicsEditor*>(parent());
+                           if (editor) {
+                               if (itemGroup->collidesWithItem(editor->getTopWall()) ||
+                                   itemGroup->collidesWithItem(editor->getBottomWall()) ||
+                                   itemGroup->collidesWithItem(editor->getLeftWall()) ||
+                                   itemGroup->collidesWithItem(editor->getRightWall())) {
+                                   return;  // Прекращаем перемещение при столкновении с границей
+                               }
+                           }
+
+                           // Применяем смещение к группе
+                           itemGroup->setPos(currentPos + delta);
+                       } else {
+                           // Для обычных объектов
+                           QPointF currentPos = selectedItem->pos();
+                           QPointF delta = mapToScene(event->pos()) - mapToScene(lastMousePos);  // Смещение от предыдущей позиции
+
+                           // Проверка на столкновение с границами
+                           GraphicsEditor* editor = qobject_cast<GraphicsEditor*>(parent());
+                           if (editor) {
+                               if (selectedItem->collidesWithItem(editor->getTopWall()) ||
+                                   selectedItem->collidesWithItem(editor->getBottomWall()) ||
+                                   selectedItem->collidesWithItem(editor->getLeftWall()) ||
+                                   selectedItem->collidesWithItem(editor->getRightWall())) {
+                                   return;  // Прекращаем перемещение при столкновении с границей
+                               }
+                           }
+
+                           // Применяем смещение к объекту
+                           selectedItem->setPos(currentPos + delta);
+                       }
+                   }
+               }
+
+               lastMousePos = event->pos();
     QGraphicsView::mouseMoveEvent(event); // Не забываем вызвать базовый метод
 }
 
 void GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-    {
+
         isDrawing = false;
-    }
+    isMovingShape = false;
     QGraphicsView::mouseReleaseEvent(event); // Не забываем вызвать базовый метод
 }
+

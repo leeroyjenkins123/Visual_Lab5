@@ -34,6 +34,7 @@ protected:
             emit resized(); // Испускаем сигнал при каждом изменении размера
         }
     void scrollContentsBy(int dx, int dy) override;
+    bool isWithinBounds(QGraphicsItem* item, QPointF newPos);
 
 private:
     QPoint lastPoint;    // Текущая точка рисования
@@ -41,6 +42,7 @@ private:
     bool isDrawing;      // Флаг, рисуем ли мы
     bool isMovingShape;
     QPen currentPen;
+    QPoint lastMousePos;
 };
 
 #endif // GRAPHICSVIEW_H

@@ -105,6 +105,73 @@ void GraphicsEditor::createMovingObject()
     velocities.append(QPointF(2, 2)); // Скорость по осям X и Y
 }
 
+//void GraphicsEditor::moveObject()
+//{
+//    int wallThickness = 10;
+
+//    for (int i = 0; i < movingItemGroups.size(); ++i) {
+//        QGraphicsItemGroup *itemGroup = movingItemGroups[i];
+//        QPointF velocity = velocities[i];
+//        QPointF newPos = itemGroup->pos() + velocity;
+
+//        QRectF boundingRect = itemGroup->boundingRect();
+//        qreal left = newPos.x();
+//        qreal right = newPos.x() + boundingRect.width();
+//        qreal top = newPos.y();
+//        qreal bottom = newPos.y() + boundingRect.height();
+
+//        bool wallCollision = false;
+
+//        // Check for wall collisions
+//        if (left <= wallThickness) {
+//            velocity.setX(-velocity.x());
+//            wallCollision = true;
+//            collisionSound.play();
+//        } else if (right >= view->viewport()->width() - 2 * wallThickness) {
+//            velocity.setX(-velocity.x());
+//            wallCollision = true;
+//            collisionSound.play();
+//        }
+
+//        if (top <= wallThickness) {
+//            velocity.setY(-velocity.y());
+//            wallCollision = true;
+//            collisionSound.play();
+//        } else if (bottom >= view->viewport()->height() - wallThickness) {
+//            velocity.setY(-velocity.y());
+//            wallCollision = true;
+//            collisionSound.play();
+//        }
+
+//        // Check for object collisions only if there’s no wall collision
+//        if (!wallCollision) {
+//            QList<QGraphicsItem *> itemsAtNewPos = scene->items(QRectF(newPos, boundingRect.size()));
+//            for (QGraphicsItem *otherItem : itemsAtNewPos) {
+//                if (otherItem != itemGroup && otherItem->data(0) != "user") {
+//                    QRectF otherBoundingRect = otherItem->boundingRect().translated(otherItem->pos());
+
+//                    if (right > otherBoundingRect.left() && left < otherBoundingRect.right()) {
+//                        velocity.setX(-velocity.x());
+//                        collisionSound.play();
+//                        break; // Collision detected, stop checking further
+//                    }
+
+//                    if (bottom > otherBoundingRect.top() && top < otherBoundingRect.bottom()) {
+//                        velocity.setY(-velocity.y());
+//                        collisionSound.play();
+//                        break; // Collision detected, stop checking further
+//                    }
+//                }
+//            }
+//        }
+
+//        // Update the position and velocity of the object
+//        itemGroup->setPos(itemGroup->pos() + velocity);
+//        velocities[i] = velocity;
+//    }
+//}
+
+
 void GraphicsEditor::moveObject()
 {
     int wallThickness = 10;
@@ -116,9 +183,9 @@ void GraphicsEditor::moveObject()
 
         // Проверка столкновения с левой и правой стенами
         QRectF boundingRect = itemGroup->boundingRect();
-                qreal left = newPos.x();
+                qreal left = newPos.x() + boundingRect.width();
                 qreal right = newPos.x() + boundingRect.width();
-                qreal top = newPos.y();
+                qreal top = newPos.y() + boundingRect.height();
                 qreal bottom = newPos.y() + boundingRect.height();
 
                 // Проверка столкновения с левой и правой стенами
@@ -140,21 +207,45 @@ void GraphicsEditor::moveObject()
                 }
 
         // Проверка столкновения с другими объектами на сцене
-        QList<QGraphicsItem *> itemsAtNewPos = scene->items(newPos);
-        bool collisionDetected = false;
-        for (QGraphicsItem *otherItem : itemsAtNewPos) {
-            if (otherItem != itemGroup && itemGroup->collidesWithItem(otherItem, Qt::IntersectsItemShape) && otherItem->data(0) != "user") {
-                collisionDetected = true;
-                break;
-            }
-        }
+//        QList<QGraphicsItem *> itemsAtNewPos = scene->items(newPos);
+//        bool collisionDetected = false;
+//        for (QGraphicsItem *otherItem : itemsAtNewPos) {
+//            if (otherItem != itemGroup && itemGroup->collidesWithItem(otherItem, Qt::IntersectsItemShape) && otherItem->data(0) != "user") {
+//                collisionDetected = true;
+//                break;
+//            }
+//        }
 
-        if (collisionDetected) {
+//        if (collisionDetected) {
 
-            velocity.setX(-velocity.x()); // Изменяем направление по оси X при столкновении
-            velocity.setY(-velocity.y()); // Изменяем направление по оси Y при столкновении
-            collisionSound.play();  // Звук столкновения
-        }
+//            velocity.setX(-velocity.x()); // Изменяем направление по оси X при столкновении
+//            velocity.setY(-velocity.y()); // Изменяем направление по оси Y при столкновении
+//            collisionSound.play();  // Звук столкновения
+//        }
+                bool collisionDetected = false;
+                QList<QGraphicsItem *> itemsAtNewPos = scene->items(QRectF(newPos, boundingRect.size()));
+                for (QGraphicsItem *otherItem : itemsAtNewPos) {
+                    if (otherItem != itemGroup && otherItem->data(0) != "user") {
+                        QRectF otherBoundingRect = otherItem->boundingRect().translated(otherItem->pos());
+
+                        if (right > otherBoundingRect.left() && left < otherBoundingRect.right()) {
+                            collisionDetected = true;
+                                            break;
+                        }
+
+                        if (bottom > otherBoundingRect.top() && top < otherBoundingRect.bottom()) {
+                            collisionDetected = true;
+                                            break;
+                        }
+                    }
+                }
+
+                if (collisionDetected) {
+
+                            velocity.setX(-velocity.x()); // Изменяем направление по оси X при столкновении
+                            velocity.setY(-velocity.y()); // Изменяем направление по оси Y при столкновении
+                            collisionSound.play();  // Звук столкновения
+                        }
 
         // Обновляем позицию объекта и скорость
         itemGroup->setPos(newPos);
@@ -664,6 +755,7 @@ void GraphicsEditor::drawKapustin() {
     textSetFlags(textY);
     scene->addItem(textY);
 
+    scene->update();  // Обновить всю сцену
 
 
 }

@@ -255,6 +255,7 @@ void GraphicsEditor::moveObject()
 
 void GraphicsEditor::on_SetPen_triggered()
 {
+    view->setEraserMode(false);
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Настройка пера"));
 

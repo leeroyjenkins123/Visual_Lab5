@@ -24,7 +24,7 @@ GraphicsEditor::GraphicsEditor(QWidget *parent) : QMainWindow(parent),
     setupWalls();
 
     drawKapustin();
-
+      drawFrolova();
     createMovingObject();
 
 //         Таймер для перемещения объекта
@@ -760,6 +760,107 @@ void GraphicsEditor::drawKapustin() {
 
 
 }
+
+void GraphicsEditor::drawFrolova(){
+    //F
+    QGraphicsItemGroup *group_F = new QGraphicsItemGroup();
+    QGraphicsItem *F_1 = scene->addEllipse(QRectF(40, 110, 60, 40), QPen(Qt::red,2), QBrush(Qt::green, Qt::SolidPattern));
+    group_F->addToGroup(F_1);
+    QGraphicsItem *F_2 = scene->addRect(QRectF(66, 100,7,70), QPen(Qt::black, 2), QBrush(Qt::black, Qt::SolidPattern));
+    group_F->addToGroup(F_2);
+    groupSetFlags(group_F);
+    scene->addItem(group_F);
+
+    //R
+    QGraphicsItemGroup *group_R = new QGraphicsItemGroup();
+    QGraphicsItem *R_1 = scene->addEllipse(QRectF(120, 110, 40, 40), QPen(Qt::black,2), QBrush(Qt::cyan , Qt::SolidPattern));
+    group_R->addToGroup(R_1);
+    QGraphicsItem *R_2 = scene->addRect(QRectF(110,110,10,70), QPen(Qt::cyan , 2), QBrush(Qt::black, Qt::SolidPattern));
+    group_R->addToGroup(R_2);
+    groupSetFlags(group_R);
+    scene->addItem(group_R);
+
+    //O
+    QGraphicsItemGroup *group_O = new QGraphicsItemGroup();
+    QGraphicsItem *O = scene->addEllipse(QRectF(180, 110, 40, 70), QPen(Qt::magenta,6), QBrush(Qt::white, Qt::SolidPattern));
+    group_O->addToGroup(O);
+    groupSetFlags(group_O);
+    scene->addItem(group_O);
+
+    //L
+    QGraphicsItemGroup *group_L = new QGraphicsItemGroup();
+    QGraphicsItem *L_1 = scene->addRect(QRectF(230, 110, 10, 70), QPen(Qt::red,5), QBrush(Qt::green, Qt::SolidPattern));
+    L_1->setTransformOriginPoint(240, 100);
+    L_1->setRotation(30);
+    L_1->setPos(40,0);
+    group_L->addToGroup(L_1);
+    QGraphicsItem *L_2 = scene->addRect(QRectF(250, 110, 10, 70), QPen(Qt::red,5), QBrush(Qt::green, Qt::SolidPattern));
+    L_2->setTransformOriginPoint(250, 100);
+    L_2->setRotation(-30);
+    L_2->setPos(20,0);
+    group_L->addToGroup(L_2);
+    groupSetFlags(group_L);
+    scene->addItem(group_L);
+
+    //O
+    QGraphicsItemGroup *group_O_2 = new QGraphicsItemGroup();
+    QGraphicsItem *O_1 = scene->addEllipse(QRectF(330, 110, 40, 70), QPen(Qt::yellow,6), QBrush(Qt::white, Qt::SolidPattern));
+    group_O_2->addToGroup(O_1);
+    groupSetFlags(group_O_2);
+    scene->addItem(group_O_2);
+
+    //  остальные буквы при помощи шрифта
+    QFont font("Arial", 50, QFont::Bold);
+    QGraphicsTextItem *textV = new QGraphicsTextItem("В");
+    textV->setFont(font);
+    textV->setDefaultTextColor(Qt::magenta);
+    textV->setPos(370, 100);
+    textSetFlags(textV);
+    scene->addItem(textV);
+
+    QGraphicsTextItem *textA1 = new QGraphicsTextItem("А");
+    textA1->setFont(font);
+    textA1->setDefaultTextColor(Qt::magenta);
+    textA1->setPos(430, 100);
+    textSetFlags(textA1);
+    scene->addItem(textA1);
+
+    QGraphicsTextItem *textN = new QGraphicsTextItem("Н");
+    textN->setFont(font);
+    textN->setDefaultTextColor(Qt::magenta);
+    textN->setPos(480, 100);
+    textSetFlags(textN);
+    scene->addItem(textN);
+
+    QGraphicsTextItem *textA2 = new QGraphicsTextItem("А");
+    textA2->setFont(font);
+    textA2->setDefaultTextColor(Qt::magenta);
+    textA2->setPos(530, 100);
+    textSetFlags(textA2);
+    scene->addItem(textA2);
+
+    QGraphicsTextItem *textS = new QGraphicsTextItem("С");
+    textS->setFont(font);
+    textS->setDefaultTextColor(Qt::magenta);
+    textS->setPos(580, 100);
+    textSetFlags(textS);
+    scene->addItem(textS);
+
+    QGraphicsTextItem *textT = new QGraphicsTextItem("Т");
+    textT->setFont(font);
+    textT->setDefaultTextColor(Qt::magenta);
+    textT->setPos(630, 100);
+    textSetFlags(textT);
+    scene->addItem(textT);
+
+    QGraphicsTextItem *textYA = new QGraphicsTextItem("Я");
+    textYA->setFont(font);
+    textYA->setDefaultTextColor(Qt::magenta);
+    textYA->setPos(680, 100);
+    textSetFlags(textYA);
+    scene->addItem(textYA);
+}
+
 
 void GraphicsEditor::groupSetFlags(QGraphicsItemGroup *group){
     group->setFlag(QGraphicsItem::ItemIsMovable, true);

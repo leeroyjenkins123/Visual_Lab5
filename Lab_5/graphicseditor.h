@@ -61,10 +61,10 @@ private slots:
     void groupSetFlags(QGraphicsItemGroup *group);
     void textSetFlags(QGraphicsTextItem *item);
     Qt::BrushStyle stringToBrushStyle(const QString &styleStr);
-    void createMovingObject();
+    void createMovingObject_1();
+    void createMovingObject_2();
+    void createMovingObject_3();
     void moveObject();
-
-
     void on_Eraser_triggered();
 
 private:
@@ -73,7 +73,6 @@ private:
     QColor currentColor;
     QPen currentPen;
     GraphicsView *view;
-
 
     QGraphicsPixmapItem *topWall;
     QGraphicsPixmapItem *bottomWall;

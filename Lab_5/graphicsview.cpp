@@ -71,37 +71,19 @@ void GraphicsView::mousePressEvent(QMouseEvent *event)
 void GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
     if (isEraserMode && isDrawing) {
-            QPoint currentPoint = mapToScene(event->pos()).toPoint();
+        QPoint currentPoint = mapToScene(event->pos()).toPoint();
             QPainterPath eraserPath;
             eraserPath.addEllipse(currentPoint, currentPen.width() / 2, currentPen.width() / 2); // Задаем область ластика
 
             QList<QGraphicsItem*> itemsToErase = scene()->items(eraserPath); // Находим объекты в области ластика
-            GraphicsEditor* editor = qobject_cast<GraphicsEditor*>(parent());
 
-            if (editor) {
-                QList<QGraphicsItemGroup*> movingGroups = editor->getMovingItemGroups();
+            for (QGraphicsItem* item : itemsToErase) {
+                bool isUserCreated = item->data(0) == "user"; // Проверяем метку элемента
 
-                for (QGraphicsItem* item : itemsToErase) {
-                    bool isUserCreated = item->data(0) == "user";
-
-                    QGraphicsItem* topLevelItem = item->topLevelItem();
-
-                    bool isPartOfMovingGroup = movingGroups.contains(dynamic_cast<QGraphicsItemGroup*>(topLevelItem));
-
-                    if (isUserCreated && !isPartOfMovingGroup) {
-                        // Получаем текущий размер объекта
-                        QRectF bounds = item->boundingRect();
-                        qreal scaleFactor = 0.9;  // Коэффициент уменьшения (настраиваемый)
-
-                        if (bounds.width() > 5 && bounds.height() > 5) {
-                            // Уменьшаем размер объекта, если он ещё достаточно велик
-                            item->setScale(item->scale() * scaleFactor);
-                        } else {
-                            // Если объект уже очень мал, удаляем его
-                            scene()->removeItem(item);
-                            delete item;
-                        }
-                    }
+                if (isUserCreated) {
+                    // Удаляем только нарисованные элементы
+                    scene()->removeItem(item);
+                    delete item;
                 }
             }
 

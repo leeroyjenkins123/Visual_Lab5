@@ -256,7 +256,7 @@ void GraphicsEditor::moveObject()
 
 void GraphicsEditor::on_SetPen_triggered()
 {
-    view->setEraserMode(false);
+
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Настройка пера"));
 
@@ -331,6 +331,7 @@ void GraphicsEditor::on_SetPen_triggered()
             });
 
     dialog.exec(); // Показать диалог
+    view->setEraserMode(false);
 }
 
 void GraphicsEditor::on_Clear_triggered()
@@ -868,89 +869,96 @@ void GraphicsEditor::drawNazarov()
 
     // N
     QGraphicsItemGroup *group_N = new QGraphicsItemGroup();
-    QGraphicsItem *N_1 = scene->addLine(QLineF(10, 160, 10, 200), QPen(Qt::green, 2));
+    QGraphicsItem *N_1 = scene->addLine(QLineF(10, 180, 10, 220), QPen(Qt::green, 2));
     group_N->addToGroup(N_1);
-    QGraphicsItem *N_2 = scene->addLine(QLineF(30, 160, 30, 200), QPen(Qt::green, 2));
+    QGraphicsItem *N_2 = scene->addLine(QLineF(30, 180, 30, 220), QPen(Qt::green, 2));
     group_N->addToGroup(N_2);
-    QGraphicsItem *N_3 = scene->addLine(QLineF(10, 160, 30, 200), QPen(Qt::green, 2));
+    QGraphicsItem *N_3 = scene->addLine(QLineF(10, 180, 30, 220), QPen(Qt::green, 2));
     group_N->addToGroup(N_3);
+    groupSetFlags(group_N);
     scene->addItem(group_N);
 
     // A
     QGraphicsItemGroup *group_A = new QGraphicsItemGroup();
-    QGraphicsItem *A_1 = scene->addLine(QLineF(50, 160, 60, 200), QPen(Qt::red, 6));
+    QGraphicsItem *A_1 = scene->addLine(QLineF(50, 180, 60, 220), QPen(Qt::red, 6));
     group_A->addToGroup(A_1);
-    QGraphicsItem *A_2 = scene->addLine(QLineF(45, 180, 55, 180), QPen(Qt::red, 6));
+    QGraphicsItem *A_2 = scene->addLine(QLineF(45, 200, 55, 200), QPen(Qt::red, 6));
     group_A->addToGroup(A_2);
-    QGraphicsItem *A_3 = scene->addLine(QLineF(50, 160, 40, 200), QPen(Qt::red, 6));
+    QGraphicsItem *A_3 = scene->addLine(QLineF(50, 180, 40, 220), QPen(Qt::red, 6));
     group_A->addToGroup(A_3);
+    groupSetFlags(group_A);
     scene->addItem(group_A);
 
     // Z
     QGraphicsItemGroup *group_Z = new QGraphicsItemGroup();
-    QGraphicsItem *Z_1 = scene->addLine(QLineF(80, 160, 100, 160), QPen(Qt::blue, 6));
+    QGraphicsItem *Z_1 = scene->addLine(QLineF(80, 180, 100, 180), QPen(Qt::blue, 6));
     group_Z->addToGroup(Z_1);
-    QGraphicsItem *Z_2 = scene->addLine(QLineF(80, 200, 100, 200), QPen(Qt::blue, 6));
+    QGraphicsItem *Z_2 = scene->addLine(QLineF(80, 220, 100, 220), QPen(Qt::blue, 6));
     group_Z->addToGroup(Z_2);
-    QGraphicsItem *Z_3 = scene->addLine(QLineF(80, 200, 100, 160), QPen(Qt::blue, 6));
+    QGraphicsItem *Z_3 = scene->addLine(QLineF(80, 220, 100, 180), QPen(Qt::blue, 6));
     group_Z->addToGroup(Z_3);
+    groupSetFlags(group_Z);
     scene->addItem(group_Z);
 
     // A
     QGraphicsItemGroup *group_A2 = new QGraphicsItemGroup();
-    QGraphicsItem *A2_1 = scene->addLine(QLineF(120, 160, 130, 200), QPen(Qt::red, 6));
+    QGraphicsItem *A2_1 = scene->addLine(QLineF(120, 180, 130, 220), QPen(Qt::red, 6));
     group_A2->addToGroup(A2_1);
-    QGraphicsItem *A2_2 = scene->addLine(QLineF(120, 160, 110, 200), QPen(Qt::red, 6));
+    QGraphicsItem *A2_2 = scene->addLine(QLineF(120, 180, 110, 220), QPen(Qt::red, 6));
     group_A2->addToGroup(A2_2);
-    QGraphicsItem *A2_3 = scene->addLine(QLineF(115, 180, 125, 180), QPen(Qt::red, 6));
+    QGraphicsItem *A2_3 = scene->addLine(QLineF(115, 200, 125, 200), QPen(Qt::red, 6));
     group_A2->addToGroup(A2_3);
+    groupSetFlags(group_A2);
     scene->addItem(group_A2);
 
     // R
     QGraphicsItemGroup *group_R = new QGraphicsItemGroup();
-    QGraphicsItem *R_1 = scene->addRect(QRectF(150, 160, 30, 10), QPen(Qt::green, 2), QBrush(Qt::black, Qt::SolidPattern));
+    QGraphicsItem *R_1 = scene->addRect(QRectF(150, 180, 30, 10), QPen(Qt::green, 2), QBrush(Qt::black, Qt::SolidPattern));
     group_R->addToGroup(R_1);
-    QGraphicsItem *R_2 = scene->addLine(QLineF(150, 170, 180, 170), QPen(Qt::green, 2));
+    QGraphicsItem *R_2 = scene->addLine(QLineF(150, 180, 180, 180), QPen(Qt::green, 2));
     group_R->addToGroup(R_2);
-    QGraphicsItem *R_4 = scene->addLine(QLineF(150, 160, 150, 200), QPen(Qt::green, 2));
+    QGraphicsItem *R_4 = scene->addLine(QLineF(150, 180, 150, 220), QPen(Qt::green, 2));
     group_R->addToGroup(R_4);
-    QGraphicsItem *R_3 = scene->addLine(QLineF(150, 170, 180, 200), QPen(Qt::green, 2));
+    QGraphicsItem *R_3 = scene->addLine(QLineF(150, 180, 180, 210), QPen(Qt::green, 2));
     group_R->addToGroup(R_3);
+    groupSetFlags(group_R);
     scene->addItem(group_R);
 
     // O
     QGraphicsItemGroup *group_O2 = new QGraphicsItemGroup();
-    QGraphicsItem *O2_1 = scene->addEllipse(QRectF(190, 160, 40, 40), QPen(Qt::blue, 6));
+    QGraphicsItem *O2_1 = scene->addEllipse(QRectF(190, 180, 40, 40), QPen(Qt::blue, 6));
     group_O2->addToGroup(O2_1);
+    groupSetFlags(group_O2);
     scene->addItem(group_O2);
 
     // V
     QGraphicsItemGroup *group_V = new QGraphicsItemGroup();
-    QGraphicsItem *V_1 = scene->addLine(QLineF(230, 160, 250, 200), QPen(Qt::blue, 6));
+    QGraphicsItem *V_1 = scene->addLine(QLineF(230, 180, 250, 220), QPen(Qt::blue, 6));
     group_V->addToGroup(V_1);
-    QGraphicsItem *V_2 = scene->addLine(QLineF(250, 200, 270, 160), QPen(Qt::blue, 6));
+    QGraphicsItem *V_2 = scene->addLine(QLineF(250, 220, 270, 180), QPen(Qt::blue, 6));
     group_V->addToGroup(V_2);
+    groupSetFlags(group_V);
     scene->addItem(group_V);
 
     QFont font("Arial", 50, QFont::Bold);
     QGraphicsTextItem *textE = new QGraphicsTextItem("Е");
     textE->setFont(font);
     textE->setDefaultTextColor(Qt::green);
-    textE->setPos(270, 140);
+    textE->setPos(270, 180);
     textSetFlags(textE);
     scene->addItem(textE);
 
     QGraphicsTextItem *textG = new QGraphicsTextItem("Г");
     textG->setFont(font);
     textG->setDefaultTextColor(Qt::green);
-    textG->setPos(320, 140);
+    textG->setPos(320, 180);
     textSetFlags(textG);
     scene->addItem(textG);
 
     QGraphicsTextItem *textO = new QGraphicsTextItem("О");
     textO->setFont(font);
     textO->setDefaultTextColor(Qt::green);
-    textO->setPos(350, 140);
+    textO->setPos(350, 180);
     textO->setRotation(0);
     textSetFlags(textO);
     scene->addItem(textO);
@@ -958,7 +966,7 @@ void GraphicsEditor::drawNazarov()
     QGraphicsTextItem *textR = new QGraphicsTextItem("Р");
     textR->setFont(font);
     textR->setDefaultTextColor(Qt::green);
-    textR->setPos(400, 140);
+    textR->setPos(400, 180);
     textSetFlags(textR);
     scene->addItem(textR);
 

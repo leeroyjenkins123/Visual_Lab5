@@ -57,6 +57,7 @@ private slots:
     void on_DeleteFigure_triggered();
     void drawKapustin();
     void drawFrolova();
+    void drawNazarov();
     void groupSetFlags(QGraphicsItemGroup *group);
     void textSetFlags(QGraphicsTextItem *item);
     Qt::BrushStyle stringToBrushStyle(const QString &styleStr);

@@ -18,6 +18,8 @@
 #include <QRandomGenerator>
 #include <QtMath>
 #include <QLabel>
+#include <QFileDialog>
+#include <QMessageBox>
 
 #include "graphicsview.h" // Подключаем наш новый класс GraphicsView
 
@@ -66,6 +68,10 @@ private slots:
     void createMovingObject_3();
     void moveObject();
     void on_Eraser_triggered();
+    void on_actionSaveScene_triggered();
+    void on_ActionAddImage_triggered();
+    void resumeMovingObjects();
+    void stopMovingObjects();
 
 private:
     Ui::GraphicsEditor *ui;
@@ -84,6 +90,7 @@ private:
     QList<QGraphicsItemGroup*> movingItemGroups;  // Список движущихся объектов
     QList<QPointF> velocities;
     QSound collisionSound;
+    QList<bool> movingStates;
 
 };
 

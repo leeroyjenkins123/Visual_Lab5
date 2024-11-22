@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>1086</width>
-     <height>20</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -40,6 +40,8 @@
    <addaction name="AddFigure"/>
    <addaction name="DeleteFigure"/>
    <addaction name="Eraser"/>
+   <addaction name="ActionAddImage"/>
+   <addaction name="actionSaveScene"/>
   </widget>
   <widget class="QToolBar" name="toolBar_2">
    <property name="windowTitle">
@@ -80,6 +82,16 @@
   <action name="Eraser">
    <property name="text">
     <string>Ластик</string>
+   </property>
+  </action>
+  <action name="ActionAddImage">
+   <property name="text">
+    <string>Добавить картинку</string>
+   </property>
+  </action>
+  <action name="actionSaveScene">
+   <property name="text">
+    <string>Сохранить сцену</string>
    </property>
   </action>
  </widget>
